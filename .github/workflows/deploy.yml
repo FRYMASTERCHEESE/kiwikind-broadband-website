@@ -26,7 +26,7 @@ jobs:
           test ! -L index.html
           export_dir="$(mktemp -d "$RUNNER_TEMP/kiwikind-pages.XXXXXX")"
           cp index.html "$export_dir/index.html"
-          for asset in privacy.html account-deletion.html policy.css; do
+          for asset in privacy.html account-deletion.html policy.css plans.js; do
             test -s "$asset"
             test ! -L "$asset"
             cp "$asset" "$export_dir/$asset"
