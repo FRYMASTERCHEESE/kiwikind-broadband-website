@@ -8,10 +8,10 @@ const terms=read('terms.html');
 const deletion=read('account-deletion.html');
 const workflow=read('.github/workflows/deploy.yml');
 
-test('GitHub Pages remains the public front page with secure separate account portal',()=>{
+test('GitHub Pages hosts the front page and account portal',()=>{
  assert.ok(landing.includes('A kinder <em>connection.</em>'));
- assert.ok(landing.includes('https://kiwikind-backend.onrender.com/#signin'));
- assert.ok(landing.includes('https://kiwikind-backend.onrender.com/#signup'));
+ assert.ok(landing.includes('./account.html#signin'));
+ assert.ok(landing.includes('./account.html#signup'));
  assert.ok(landing.includes('This GitHub Pages website hosts KiwiKind public information'));
  assert.ok(!landing.includes('href="/admin/"'));
  assert.ok(!landing.includes('https://kiwikind-backend.onrender.com/#privacy'));
@@ -54,6 +54,6 @@ test('never leak server credentials, private quotes or supplier contracts',()=>{
 test('the Pages deploy tests and exports only allowlisted public files',()=>{
  assert.ok(workflow.includes('node --test tests/*.test.cjs'));
  assert.ok(workflow.indexOf('node --test tests/*.test.cjs')<workflow.indexOf('Stage only approved public assets'));
- assert.ok(workflow.includes('for asset in privacy.html terms.html account-deletion.html policy.css plans.js; do'));
+ assert.ok(workflow.includes('account.html account.js account.css readiness.js owner.html owner.js owner.css; do'));
  assert.ok(!workflow.includes('cp -r'));
 });
