@@ -24,6 +24,7 @@ async function api(path, data, generation = accountGeneration) {
   return result;
 }
 function showSignedOut() {
+  document.body.classList.remove('dashboard-open');
   accountGeneration++;
   lastAccountSync = 0;
   updateAccountNavigation(false);
@@ -51,6 +52,7 @@ async function refresh(savedAccount) {
   const me=savedAccount || await api('me', undefined, generation);
   if (generation !== accountGeneration) return;
   lastAccountSync = Date.now();
+  document.body.classList.add('dashboard-open');
   updateAccountNavigation(true); document.body.classList.remove('account-open','signup-view'); if(location.hash==='#signin'||location.hash==='#signup'){history.replaceState(null,'',location.pathname+location.search);} $('auth-area').classList.add('hidden'); $('dashboard').classList.remove('hidden'); $('account-email').textContent=me.email; $('signed-in-email').textContent=me.email; $('signed-in-bar').classList.remove('hidden');
   $('owner-admin-link')?.remove();
   const results=await Promise.allSettled([api('orders', undefined, generation),api('tickets', undefined, generation),api('invoices', undefined, generation)]);
