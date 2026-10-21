@@ -17,9 +17,10 @@ $('load-referrals').addEventListener('click',safeAction(()=>loadReferrals()));
 $('create-referral').addEventListener('click',safeAction(()=>loadReferrals(true)));
 $('load-preferences').addEventListener('click',safeAction(async()=>{
   const generation=accountGeneration;const value=await api('preferences',undefined,generation);
-  if(generation===accountGeneration)$('account-notifications').checked=value.account_notifications;
+  if(generation===accountGeneration){$('account-notifications').checked=value.account_notifications===true;preferencesLoaded=true;$('account-notifications').disabled=false;$('save-preferences').disabled=false;}
 }));
 $('preferences-form').addEventListener('submit',safeAction(async()=>{
+  if(!preferencesLoaded)throw Error('Load your saved preferences before making changes.');
   await api('preferences',{account_notifications:$('account-notifications').checked});
   notice('Preference saved. Notification delivery and marketing remain disabled.');
 }));

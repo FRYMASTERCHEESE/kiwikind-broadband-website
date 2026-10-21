@@ -8,6 +8,7 @@ let lastAccountSync = 0;
 let accountSyncInFlight = false;
 let accountGeneration = 0;
 let restoringSession = true, initInFlight = false, authPending = false;
+let preferencesLoaded = false;
 function notice(message, error = false) { $('notice').textContent = message; $('notice').classList.toggle('error', error); }
 async function api(path, data, generation = accountGeneration) {
   let response;
@@ -34,6 +35,10 @@ function showSignedOut() {
   $('signed-in-email').textContent='';
   $('account-email').textContent='';
   $('owner-admin-link')?.remove();
+  for(const id of ['auth-form','order-form','ticket-form','deletion-form','preferences-form','reset-request-form'])$(id)?.reset();
+  preferencesLoaded=false;
+  $('save-preferences').disabled=true;
+  $('account-notifications').disabled=true;
   for (const id of ['orders','tickets','invoices','referral-result','connection-progress']) $(id)?.replaceChildren();
   if($('account-notifications'))$('account-notifications').checked=false;
   if($('confirm-google-deletion'))$('confirm-google-deletion').checked=false;
@@ -84,6 +89,7 @@ async function refresh(savedAccount) {
     }));
   }
   empty('invoices',invoices?'No invoices.':'Billing information temporarily unavailable.');
+  if(invoices?.invoices?.length)$('invoices').replaceChildren();
   for(const i of invoices?.invoices || []) record($('invoices'),new Intl.NumberFormat('en-NZ',{style:'currency',currency:i.currency}).format(i.amount_cents/100),`${i.status} · Due ${i.due_date}`);
   $('order-submit').disabled=!intake;
   $('refresh-account')?.classList.remove('hidden');
@@ -115,7 +121,15 @@ $('deletion-form').addEventListener('submit',safeAction(async e=>{notice((await 
 $('refresh-account')?.addEventListener('click',safeAction(async()=>{await refresh();notice('Account details refreshed.');}));
 $('top-logout').addEventListener('click',()=> $('logout').click());
 $('top-refresh').addEventListener('click',()=> $('refresh-account').click());
-$('export').addEventListener('click',safeAction(async()=>{const data=await api('privacy/export');const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='kiwikind-data.json';a.click();URL.revokeObjectURL(url);notice('Your data export is ready.');}));
+$('export').addEventListener('click',safeAction(async()=>{
+  const generation=accountGeneration;
+  const data=await api('privacy/export',undefined,generation);
+  if(generation!==accountGeneration||$('dashboard').classList.contains('hidden'))return;
+  const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+  const a=document.createElement('a');a.href=url;a.download='kiwikind-data.json';a.hidden=true;document.body.append(a);a.click();
+  setTimeout(()=>{a.remove();URL.revokeObjectURL(url);},1000);
+  notice('Your data export is ready.');
+}));
 async function init(){
   if(initInFlight)return;
   initInFlight=true;restoringSession=true;$('retry-connection').disabled=true;
@@ -179,13 +193,14 @@ function setupGoogleSignIn(){
     renderGoogleButton();
     window.addEventListener('resize',renderGoogleButton);
   };
-  script.onerror=()=>notice('Google sign-in is unavailable. You can still use email sign-in.',true);
+  script.onerror=()=>{script.remove();$('retry-connection').classList.remove('hidden');notice('Google sign-in is unavailable. Retry the connection to try Google again, or use email sign-in.',true);};
   document.head.append(script);
 }
 
 // Top navigation switches directly to the requested account form.
 function updateAccountNavigation(signedIn){$('nav-signin').classList.toggle('hidden',signedIn);$('nav-signup').classList.toggle('hidden',signedIn);$('nav-account').classList.toggle('hidden',!signedIn);}
 function selectAccountForm(signUp){
+  $('reset-request-form').classList.add('hidden');$('auth-form').classList.remove('hidden');
   if(registration!==signUp)$('toggle-auth').click();
   document.body.classList.toggle('signup-view',signUp);
   $('back-to-login').classList.toggle('hidden',!signUp);
@@ -209,6 +224,7 @@ function routeAccount(){
   }else if(!registration){document.body.classList.remove('signup-view');$('back-to-login').classList.add('hidden');}
 }
 window.addEventListener('hashchange',routeAccount);
+for(const id of ['nav-signin','nav-signup'])$(id).addEventListener('click',()=>{if(location.hash===$(id).hash)routeAccount();});
 routeAccount();
 
 // Refresh shared account data after returning from Android, another tab, or a network interruption.
