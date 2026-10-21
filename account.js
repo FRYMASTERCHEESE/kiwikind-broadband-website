@@ -224,6 +224,7 @@ function routeAccount(){
   }else if(!registration){document.body.classList.remove('signup-view');$('back-to-login').classList.add('hidden');}
 }
 window.addEventListener('hashchange',routeAccount);
+for(const id of ['nav-signin','nav-signup'])$(id).addEventListener('click',()=>{if(location.hash===$(id).hash)routeAccount();});
 routeAccount();
 
 // Refresh shared account data after returning from Android, another tab, or a network interruption.

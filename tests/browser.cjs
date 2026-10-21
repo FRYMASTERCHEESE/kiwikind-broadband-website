@@ -46,6 +46,9 @@ const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+deco
    await page.goto(base+'/account.html#signin');
    await page.locator('#auth-submit:not([disabled])').waitFor();
    await page.locator('#forgot').click();
+   await page.locator('#nav-signin').click();
+   await page.locator('#reset-request-form').waitFor({state:'hidden'});
+   await page.locator('#forgot').click();
    await page.locator('#nav-signup').click();
    await page.locator('#reset-request-form').waitFor({state:'hidden'});
    assert.equal(await page.locator('#reset-request-form').isVisible(),false);
