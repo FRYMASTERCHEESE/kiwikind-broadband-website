@@ -1,0 +1,22 @@
+name: KiwiKind prelaunch public safety monitoring
+on:
+  schedule:
+    - cron: '25 1,13 * * *'
+  workflow_dispatch:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test safety rules without network access
+        run: python -m unittest discover -s tests -p 'test_prelaunch_*.py' -v
+      - name: Check actual public prelaunch gates and policy pages
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: python scripts/prelaunch_safety_check.py
