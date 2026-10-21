@@ -4,16 +4,19 @@
   const $=id=>document.getElementById(id);
   let csrf='',busy=false,epoch=0;
   const message=text=>{$('notice').textContent=text;};
-  const clear=()=>{epoch++;for(const id of ['signin','mfa','private'])$(id).hidden=true;for(const id of ['checks','catalogue','setup-key','columns','google','stripe-result'])$(id).replaceChildren();$('mfa-form').reset();$('import-form').reset();};
+  const clear=()=>{epoch++;operations?.clear();sandbox?.clear();for(const id of ['signin','mfa','private'])$(id).hidden=true;for(const id of ['checks','catalogue','setup-key','columns','google','stripe-result'])$(id).replaceChildren();$('mfa-form').reset();$('import-form').reset();};
   async function api(path,data){
     const response=await fetch(origin+'/api/'+path,{method:data===undefined?'GET':'POST',credentials:'include',cache:'no-store',redirect:'error',headers:{'Content-Type':'application/json','X-CSRFToken':csrf},...(data===undefined?{}:{body:JSON.stringify(data)}),signal:AbortSignal.timeout(75000)});
     let result;try{result=await response.json();}catch{throw Error('The secure API is unavailable. Retry shortly.');}
-    if(!response.ok){if(response.status===401||response.status===403)clear();throw Error(result.error||'Secure session unavailable. Allow cross-site cookies for this site, then retry.');}
+    if(!response.ok){if(response.status===401||response.status===403)clear();const fields=Object.entries(result.fields||{}).flatMap(([name,items])=>items.map(e=>name+': '+e.message)).join(' ');throw Error((result.error||'Secure session unavailable. Allow cross-site cookies for this site, then retry.')+(fields?' '+fields:''));}
     if(result.csrfToken)csrf=result.csrfToken;
     return result;
   }
   const action=fn=>async event=>{event?.preventDefault?.();if(busy)return;busy=true;try{await fn(event);}catch(error){message(error.message||'Could not connect. Retry shortly.');}finally{busy=false;}};
   const node=(tag,text)=>{const el=document.createElement(tag);el.textContent=text;return el;};
+  const operations=window.KiwiKindOwnerOps?.create({api,action,node,message});
+  const sandbox=window.KiwiKindSandbox?.create({api,action,node,message});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){operations?.clear();sandbox?.clear();}});
   async function refresh(){
     const generation=epoch;
     const [readiness,catalogue]=await Promise.all([api('owner/readiness'),api('owner/catalogue')]);
@@ -24,7 +27,7 @@
     for(const plan of catalogue.plans){const row=node('tr','');for(const value of [plan.name,`${plan.network||'Unknown'} · ${plan.download_mbps??'?'} / ${plan.upload_mbps??'?'} Mbps`,plan.wholesale_ex_gst??'Unknown',plan.retail_ex_gst??'Unapproved',plan.review_status])row.append(node('td',String(value)));$('catalogue').append(row);}
     if(!catalogue.plans.length){const row=node('tr','');const cell=node('td','No private quotes recorded.');cell.colSpan=5;row.append(cell);$('catalogue').append(row);}
     $('columns').textContent=catalogue.csv_columns.join(',');
-    $('private').hidden=false;message('Owner Google proof and MFA verified. Private evidence loaded.');
+    $('private').hidden=false;await operations?.load();await sandbox?.load();message('Owner Google proof and MFA verified. Private evidence loaded.');
   }
   async function init(){
     clear();message('Checking secure session…');
