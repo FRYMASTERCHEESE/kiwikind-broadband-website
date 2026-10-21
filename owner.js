@@ -27,24 +27,28 @@
     for(const plan of catalogue.plans){const row=node('tr','');for(const value of [plan.name,`${plan.network||'Unknown'} · ${plan.download_mbps??'?'} / ${plan.upload_mbps??'?'} Mbps`,plan.wholesale_ex_gst??'Unknown',plan.retail_ex_gst??'Unapproved',plan.review_status])row.append(node('td',String(value)));$('catalogue').append(row);}
     if(!catalogue.plans.length){const row=node('tr','');const cell=node('td','No private quotes recorded.');cell.colSpan=5;row.append(cell);$('catalogue').append(row);}
     $('columns').textContent=catalogue.csv_columns.join(',');
-    $('private').hidden=false;await operations?.load();await sandbox?.load();message('Owner Google proof and MFA verified. Private evidence loaded.');
+    $('private').hidden=false;await operations?.load();if(generation!==epoch||document.hidden)return;await sandbox?.load();if(generation!==epoch||document.hidden)return;message('Owner Google proof and MFA verified. Private evidence loaded.');
   }
   async function init(){
     clear();message('Checking secure session…');
+    const generation=epoch;
     await api('bootstrap');await api('pages/cookie-probe',{});
     if(!(await api('pages/session-probe')).session_cookie)throw Error('Your browser blocked the secure session cookie. Allow cross-site cookies for this site, then retry.');
     const state=await api('owner/state');
+    if(generation!==epoch||document.hidden)return;
     if(!state.enabled)throw Error('Owner administration is unavailable.');
     if(state.mfa_verified){await refresh();return;}
     if(state.identity_verified){
       // A fresh document means the Google script never shares an MFA/catalogue document.
       if(document.querySelector('script[src="https://accounts.google.com/gsi/client"]')){location.reload();return;}
-      const factor=await api('owner/mfa');$('mfa').hidden=false;
+      const factor=await api('owner/mfa');if(generation!==epoch||document.hidden)return;$('mfa').hidden=false;
       $('setup-info').textContent=factor.enrolling?'Add the key below to your authenticator as KiwiKind Broadband, then verify a code. Keep the key private.':'Enter the current code from your existing authenticator.';
       $('setup-key').textContent=factor.setup_key||'';message('Complete authenticator verification.');return;
     }
     const challenge=await api('owner/challenge',{});$('signin').hidden=false;
+    if(generation!==epoch||document.hidden){$('signin').hidden=true;return;}
     const render=()=>{
+      if(generation!==epoch||document.hidden)return;
       google.accounts.id.initialize({client_id:challenge.client_id,nonce:challenge.nonce,ux_mode:'popup',auto_select:false,callback:action(async response=>{await api('owner/signin',{credential:response.credential});location.reload();})});
       google.accounts.id.renderButton($('google'),{theme:'outline',size:'large',width:260});
       message('Sign in with the owner Google account. The challenge expires in five minutes.');
