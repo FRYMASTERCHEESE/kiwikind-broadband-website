@@ -19,6 +19,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Test public policy links and sales safeguards
+        run: node --test tests/*.test.cjs
       - name: Stage only approved public assets
         shell: bash
         run: |
@@ -26,7 +31,7 @@ jobs:
           test ! -L index.html
           export_dir="$(mktemp -d "$RUNNER_TEMP/kiwikind-pages.XXXXXX")"
           cp index.html "$export_dir/index.html"
-          for asset in privacy.html account-deletion.html policy.css plans.js; do
+          for asset in privacy.html terms.html account-deletion.html policy.css plans.js; do
             test -s "$asset"
             test ! -L "$asset"
             cp "$asset" "$export_dir/$asset"
