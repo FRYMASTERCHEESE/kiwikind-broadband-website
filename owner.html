@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en-NZ"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com; style-src 'self' 'unsafe-inline' https://accounts.google.com; connect-src https://kiwikind-backend.onrender.com https://accounts.google.com; frame-src https://accounts.google.com; img-src 'self' data: https://accounts.google.com https://*.googleusercontent.com; base-uri 'self'; object-src 'none'; form-action 'self'">
+<title>KiwiKind · Private owner centre</title><link rel="stylesheet" href="./owner.css"><script src="./owner.js" defer></script></head>
+<body><header><a href="./index.html">🌿 KiwiKind Broadband</a><a href="./account.html#portal">My KiwiKind</a></header>
+<main><p class="eyebrow">PRIVATE OWNER CENTRE</p><h1>Getting KiwiKind ready.</h1><p>Broadband sales, live payments and supplier orders remain closed.</p>
+<p id="notice" role="status" aria-live="polite">Checking secure session…</p><button id="retry" type="button">Retry connection</button>
+<section id="signin" hidden><h2>Owner Google sign-in</h2><p>Use the authorised KiwiKind owner Google account, followed by your authenticator. Customer sign-in does not grant access.</p><div id="google"></div></section>
+<section id="mfa" hidden><h2>Authenticator verification</h2><p id="setup-info"></p><p id="setup-key"></p><form id="mfa-form"><label>Six-digit authenticator code<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></label><button>Verify authenticator</button></form></section>
+<section id="private" hidden><div class="actions"><button id="refresh" type="button">Refresh evidence</button><button id="logout" type="button">Sign out</button></div>
+<h2>Launch readiness</h2><p>Stored evidence is shown below. It is not a fresh Stripe provider check or permission to launch. Renewal, declined-card and authentication-challenge tests remain separate requirements.</p><button id="stripe-check" type="button">Check current Stripe TEST evidence</button><p id="stripe-result" role="status"></p><div id="checks"></div>
+<h2>Private Vetta price catalogue</h2><p>Unverified quotes and proposed retail prices stay private. No control here approves or publishes prices.</p><div class="table-scroll"><table><thead><tr><th>Plan</th><th>Network / speed</th><th>Wholesale NZD ex GST</th><th>Proposed retail NZD ex GST</th><th>Status</th></tr></thead><tbody id="catalogue"></tbody></table></div>
+<details><summary>Import private draft quotes</summary><p>Use the exact CSV columns below. Maximum 50 rows; this web form accepts up to 12 KB. Missing setup charges remain unknown.</p><p id="columns"></p><form id="import-form"><label>Private CSV file<input name="csv" type="file" accept=".csv,text/csv" required></label><label class="check"><input name="confirm" type="checkbox" required>These are private, unverified drafts only.</label><button>Save private drafts</button></form></details></section>
+<p class="small">Sign-in requires cross-site cookies between this website and its secure API. If your browser blocks them, sign-in stays closed. No account or catalogue data is stored on GitHub Pages.</p>
+</main></body></html>
