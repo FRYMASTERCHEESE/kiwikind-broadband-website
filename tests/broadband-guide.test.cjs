@@ -42,7 +42,7 @@ test('explain modem compatibility without claiming all equipment works',()=>{
 test('price display is an estimate until KiwiKind verifies supplier setup',()=>{
   assert.ok(html.includes('Estimated setup once, incl. GST'));
   assert.ok(html.includes('Estimated first month + setup'));
-  assert.ok(html.includes('Supplier installation, churn, equipment'));
+  assert.ok(html.includes('Installation, churn, equipment'));
   assert.ok(html.includes('No payment is taken when you send an address request'));
   assert.ok(script.includes("configure(product,preferredOptions(product,preferredSpeed))"));
   assert.ok(!script.includes('api/payments/checkout'));
