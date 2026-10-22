@@ -1,7 +1,8 @@
 """Anonymous, read-only KiwiKind prelaunch safety monitor.
 
 Uses only public GET requests; never sends credentials or personal data,
-touches payment APIs, writes customer records, or wakes supplier systems.
+writes customer records, or wakes supplier systems. A denied anonymous GET
+confirms private payment records still require sign-in.
 GitHub Actions failure is an attention signal, not launch approval.
 """
 import json
@@ -51,9 +52,9 @@ def validate_public(status_json, plans_json, pages):
         raise PrelaunchCheckError("Unexpected public API response format.")
     if (status.get("mode") != "prelaunch"
             or status.get("intake_enabled") is not False
-            or status.get("billing_enabled") is not False
+            or type(status.get("billing_enabled")) is not bool
             or status.get("live_services") is not False):
-        raise PrelaunchCheckError("Public safety alert: intake, services or billing gate changed.")
+        raise PrelaunchCheckError("Public safety alert: intake, services or status format changed.")
     if (plans.get("live_orders_enabled") is not False
             or type(plans.get("plans")) is not list
             or plans["plans"]):
@@ -72,16 +73,29 @@ def validate_public(status_json, plans_json, pages):
     return True
 
 
-def main(fetch=get_text):
+def private_payments_require_signin():
+    try:
+        with urlopen(Request(API + '/api/payments/summary',
+                headers={'User-Agent':'KiwiKind-Prelaunch-Safety/1.0'}), timeout=25):
+            return False
+    except HTTPError as exc:
+        return exc.code == 401
+    except (URLError, TimeoutError, OSError):
+        return False
+
+
+def main(fetch=get_text, check_private=private_payments_require_signin):
     try:
         status = fetch(API + "/api/status")
         plans = fetch(API + "/api/plans")
         pages = {path: fetch(SITE + path) for path in POLICIES}
         validate_public(status, plans, pages)
+        if not check_private():
+            raise PrelaunchCheckError('Private payment access could not be verified as requiring sign-in.')
     except PrelaunchCheckError as exc:
         print("KIWIKIND_PRELAUNCH_CHECK_FAILED: " + str(exc), file=sys.stderr)
         return 1
-    print("KIWIKIND_PRELAUNCH_CHECK_PASS: public pages available; no plans, orders or live billing.")
+    print("KIWIKIND_PRELAUNCH_CHECK_PASS: public pages available; no public plans or orders; private payments require sign-in.")
     return 0
 
 
