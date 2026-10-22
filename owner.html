@@ -10,6 +10,14 @@
 <section id="mfa" hidden><h2>Authenticator verification</h2><p id="setup-info"></p><p id="setup-key"></p><form id="mfa-form"><label>Six-digit authenticator code<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></label><button>Verify authenticator</button></form></section>
 <section id="private" hidden><div class="actions"><button id="refresh" type="button">Refresh evidence</button><button id="logout" type="button">Sign out</button></div>
 <section id="operations" hidden aria-label="Private administration"><h2>Manage broadband requests and offers</h2><nav id="ops-nav" class="actions" aria-label="Owner workflows"></nav><div id="ops-content"></div></section>
+<section id="one-dollar" aria-label="Private real one-dollar payment verification">
+<h2>Verify a real NZ$1 payment</h2>
+<p>This is an owner-only, <strong>one-time NZ$1 live Stripe payment</strong> to verify your KiwiKind website. It is not a subscription, broadband order, plan approval or Vetta service activation. Card details are entered only on Stripe.</p>
+<p id="one-dollar-status" role="status" aria-live="polite">Checking payment verification availability…</p>
+<label class="check"><input id="one-dollar-consent" type="checkbox">I authorise a real one-time NZ$1 payment from my own card, with no recurring billing.</label>
+<div class="actions"><button id="one-dollar-pay" type="button" disabled>Pay NZ$1 once securely</button><button id="one-dollar-refresh" type="button">Refresh payment verification</button></div>
+<p class="small">A redirect back here does not prove payment. The server confirms Stripe's signed live webhook. After a successful charge you can refund it in your Stripe Dashboard; processing fees may not be returned.</p>
+</section>
 <details id="owner-advanced-qa"><summary>Advanced owner diagnostics (optional)</summary><p>Private Stripe sandbox exercises are retained for financial verification, not customer checkout.</p><section id="sandbox-exercises" aria-label="Owner-only payment QA"></section></details>
 <details id="owner-technical-readiness"><summary>Financial and launch audit evidence</summary><p>Private records reflect completed checks. These records are not an order or a supplier-approval action.</p><button id="stripe-check" type="button">Verify internal Stripe evidence</button><p id="stripe-result" role="status"></p><div id="checks"></div></details>
 <h2>Private Vetta price catalogue</h2><p>Unverified quotes and proposed retail prices stay private. No control here approves or publishes prices.</p><div class="table-scroll"><table><thead><tr><th>Plan</th><th>Network / speed</th><th>Wholesale NZD ex GST</th><th>Proposed retail NZD ex GST</th><th>Status</th></tr></thead><tbody id="catalogue"></tbody></table></div>
