@@ -1,0 +1,28 @@
+/* Shared mobile-first navigation that stays on the existing GitHub Pages site. */
+.kk-shortcuts{display:flex;gap:6px;justify-content:center;align-items:center;flex-wrap:wrap;padding:10px 15px;background:#e8f3ea;border-bottom:1px solid #b5d2bd;color:#103e34}
+.kk-shortcuts a{display:inline-flex;align-items:center;min-height:44px;padding:9px 12px;border-radius:10px;font:700 14px/1.25 system-ui,Arial,sans-serif;text-decoration:none;color:#103e34}
+.kk-shortcuts a[aria-current=page]{color:#fff;background:#103e34}.kk-shortcuts a:hover{background:#c6e5cf}.kk-shortcuts a[aria-current=page]:hover{background:#245747}
+.kk-shortcuts a:focus-visible,.kk-plan-filter input:focus-visible,.kk-track-order:focus-visible{outline:3px solid #c77c2a;outline-offset:3px}
+.kk-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;list-style:none;padding:0;margin:24px 0}
+.kk-steps li{padding:13px;border-radius:11px;border:1px solid #bad3c2;background:#eef7ef;color:#103e34;font:14px/1.5 system-ui,Arial,sans-serif}
+.kk-steps li:first-child{background:#103e34;color:#fff}
+.kk-steps strong,.kk-steps span{display:block}.kk-steps span{font-size:12px;margin-top:5px}
+.kk-plan-filter{max-width:700px;margin:18px 0 25px;color:#103e34}
+.kk-plan-filter label{display:block;margin-bottom:8px;font-weight:750}
+.kk-plan-filter input{width:100%;min-height:48px;font:16px system-ui,Arial,sans-serif;padding:13px 15px;border-radius:9px;border:1px solid #6c9980;background:#fff;color:#103e34}
+.kk-plan-filter p{font:13px/1.5 system-ui,Arial,sans-serif}.kk-plan-filter #kk-empty{padding:15px;border-radius:10px;background:#fff0db;color:#58340e}
+.kk-config-guide,.kk-owner-guide{padding:17px 20px;border-radius:10px;border-left:4px solid #197050;background:#e9f3eb;color:#174334;line-height:1.65;margin:20px 0}
+.kk-track-order:not([hidden]){display:inline-block;background:#103e34;color:white;padding:13px 17px;border-radius:10px;text-decoration:none;font-weight:750;margin:15px 0}
+@media(max-width:850px){.kk-steps{grid-template-columns:repeat(2,minmax(0,1fr))}.kk-steps li{padding:10px}}
+@media(max-width:600px){.kk-shortcuts{gap:2px;justify-content:space-between;padding:8px 8px}.kk-shortcuts a{min-height:44px;padding:8px 5px;font-size:11px}.kk-steps{gap:7px}.kk-steps span{font-size:11px}}
+/* Make long screenshot-derived plan choices usable on small phones. */
+body:has(#catalogue) .card{min-height:0}
+body:has(#catalogue) .grid{gap:17px}
+body:has(#catalogue) .card h2{min-height:0;font-size:clamp(20px,2.5vw,27px)}
+body:has(#catalogue) .card .price{font-size:clamp(29px,3.5vw,38px)}
+body:has(#catalogue) .card .desc{font-size:15px;line-height:1.55}
+body:has(#catalogue) .card .cta{margin-top:14px}
+body:has(#catalogue) .summary{background:#103e34;color:#fff;border-radius:13px}
+body:has(#catalogue) .summary button{background:#d1ebd5;color:#103e34;border-radius:10px;cursor:pointer}
+@media(max-width:600px){body:has(#catalogue) header{padding:14px 16px}body:has(#catalogue) header nav{display:flex;gap:10px;flex-wrap:wrap}body:has(#catalogue) main{padding:0 16px}body:has(#catalogue) .card{padding:21px}body:has(#catalogue) .config-layout{gap:19px}body:has(#catalogue) .order-form{padding:19px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
