@@ -6,3 +6,19 @@
 #ops-nav .priority-requests:hover{background:#c1e3cb}
 #ops-nav .priority-requests:focus-visible{outline:3px solid #ca8a30;outline-offset:3px}
 @media(max-width:600px){#ops-nav .priority-requests{width:100%;text-align:center}}
+
+/* Owner-only ordering shortcuts; backend retains Google MFA, CSRF, version and price validation. */
+.owner-order-hint{background:#eef7ef;border-left:4px solid #267150;border-radius:7px;padding:13px 15px}
+#ops-content .owner-action-primary{background:#1c6b47;color:white;border:2px solid #17492f;border-radius:11px;font-weight:800;margin:10px 0}
+#ops-content .owner-action-primary:disabled{opacity:.54;cursor:not-allowed}
+.owner-approval-guide{background:#e7f4eb;border:1px solid #b9dcc2;border-radius:12px;padding:17px;margin:20px 0}
+.owner-approval-guide h4{font-size:18px;margin:0 0 8px}
+.owner-approval-guide ol{padding-left:22px}
+.owner-approval-guide li{margin:10px 0;line-height:1.6}
+.owner-approval-attestation{background:#fff6e9;padding:15px;border:2px solid #9c661f;border-radius:10px;display:flex;gap:12px;line-height:1.55}
+.owner-approval-attestation input{flex:none;min-width:21px;min-height:21px;margin:3px 0 0}
+#ops-content form label{line-height:1.5}
+#ops-content form input:not([type=checkbox]){min-height:45px;max-width:100%}
+#ops-content form textarea{min-height:130px}
+#ops-nav .priority-requests{width:100%}
+@media(max-width:680px){#ops-content .owner-action-primary{width:100%}}

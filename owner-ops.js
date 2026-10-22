@@ -24,13 +24,19 @@ window.KiwiKindOwnerOps={create({api,action,node,message}){
     const current=++generation;
     const query=new URLSearchParams({page,q,...(customer?{customer}:{})});
     const data=await api('owner/operations/'+kind+'?'+query);if(current!==generation)return;
-    const host=$('ops-content');host.replaceChildren(node('h3',kind.replaceAll('-',' ')));
+    const host=$('ops-content');host.replaceChildren(node('h3',kind==='requests'?'Broadband requests':kind.replaceAll('-',' ')));
+    if(kind==='requests'){
+      const help=node('p','Select a request to review its chosen plan and service address. No charge or Vetta order is placed from this list.');
+      help.className='owner-order-hint';host.append(help);
+      const first=data.rows.find(record=>record.status==='requested'||record.status==='reviewing');
+      if(first){const next=button('Review next broadband request',()=>detail(kind,first.id));next.classList.add('owner-action-primary');host.append(next);}
+    }
     const search=node('form',''),input=document.createElement('input');input.type='search';input.placeholder='Search';input.setAttribute('aria-label','Search '+kind);input.value=q;search.append(input,node('button','Search'));
     search.addEventListener('submit',action(()=>collection(kind,1,input.value,customer)));host.append(search);
     if(data.create)host.append(button('Add private record',()=>detail(kind,'new')));
     const scroll=node('div','');scroll.className='table-scroll';const table=node('table',''),thead=node('thead',''),tr=node('tr','');
     for(const column of data.columns)tr.append(node('th',column.replaceAll('_',' ')));tr.append(node('th','Review'));thead.append(tr);table.append(thead);
-    const tbody=node('tbody','');for(const item of data.rows){const row=node('tr','');for(const column of data.columns)row.append(node('td',item[column]===null?'Unknown':String(item[column])));const cell=node('td','');cell.append(button('Open',()=>detail(kind,item.id)));row.append(cell);tbody.append(row);}table.append(tbody);scroll.append(table);host.append(scroll);
+    const tbody=node('tbody','');for(const item of data.rows){const row=node('tr','');for(const column of data.columns)row.append(node('td',item[column]===null?'Unknown':String(item[column])));const cell=node('td','');cell.append(button(kind==='requests'?'Review request':'Open',()=>detail(kind,item.id)));row.append(cell);tbody.append(row);}table.append(tbody);scroll.append(table);host.append(scroll);
     host.append(node('p',`Page ${data.page} · ${data.total} records`));
     if(page>1)host.append(button('Previous',()=>collection(kind,page-1,q,customer)));
     if(page*30<data.total)host.append(button('Next',()=>collection(kind,page+1,q,customer)));
@@ -65,12 +71,38 @@ window.KiwiKindOwnerOps={create({api,action,node,message}){
       };
       form.addEventListener('input',event=>{if(event.target.name!=='confirm_live_offer')update();});update();
     }
-    if(data.editable)form.append(node('button','Save private record'));
+    if(data.kind==='payment-agreements'&&data.editable){
+      const attestation=node('label','I personally verified this customer’s address, service availability and final supplier fees in Vetta. I understand this approves a customer offer, not an automatic supplier order.');
+      attestation.className='owner-approval-attestation';
+      const verified=document.createElement('input');verified.type='checkbox';verified.name='vetta_owner_verified';attestation.prepend(verified);form.append(attestation);
+      const approvalButton=node('button','Save draft for later');approvalButton.type='submit';approvalButton.className='owner-action-primary';form.append(approvalButton);
+      const updateApproval=()=>{
+        const approving=form.elements.reviewed?.checked===true;
+        approvalButton.textContent=approving?'Approve final customer offer':'Save draft for later';
+        verified.required=approving;
+        approvalButton.disabled=approving&&!verified.checked;
+        approvalButton.setAttribute('aria-describedby','owner-approval-steps');
+      };
+      form.addEventListener('change',updateApproval);verified.addEventListener('change',updateApproval);updateApproval();
+    }else if(data.editable)form.append(node('button','Save private record'));
     return form;
   }
   async function detail(kind,id){
     const current=++generation;const data=await api('owner/operations/'+kind+'/'+id);if(current!==generation)return;
     const host=$('ops-content');host.replaceChildren(button('Back to records',()=>collection(kind)),node('h3',kind.replaceAll('-',' ')+' · '+id));
+    if(kind==='payment-agreements'){
+      const intro=node('section','');intro.className='owner-approval-guide';
+      intro.append(node('h4','Confirm the final offer in one place'));
+      const list=node('ol','');
+      for(const step of ['Check this customer’s address and supplier availability in Vetta.',
+       'Enter exact supplier costs in cents. Confirm all installation, equipment, cancellation and payment-start terms.',
+       'Review the GST-inclusive customer total, tick Supplier confirmed, Reviewed and the exact-offer checkbox, then save.']){
+          list.append(node('li',step));
+      }
+      intro.id='owner-approval-steps';
+      intro.append(list,node('p','Saving an approved offer does not charge the customer or submit a Vetta order. The customer must separately accept the payment.'));
+      host.append(intro);
+    }
     for(const [key,value] of Object.entries(data.record))host.append(node('p',key.replaceAll('_',' ')+': '+(value??'Unknown')));
     if(data.broadband){
       const q=data.broadband,money=n=>new Intl.NumberFormat('en-NZ',{style:'currency',currency:'NZD'}).format(n/100);
@@ -78,18 +110,32 @@ window.KiwiKindOwnerOps={create({api,action,node,message}){
       for(const o of q.options)host.append(node('p',o.group+': '+o.name));
       host.append(node('p',money(q.monthly_cents)+'/month · '+(q.setup_cents===null?'Setup to confirm':money(q.setup_cents)+' setup once')+' · GST included'));
       for(const usage of q.usage)host.append(node('p',usage));
-      host.append(node('p','Confirm the address and connection details manually in Vetta. Prepare the offer, complete the service terms and payment date, then approve it. No supplier order is submitted by this website.'));
-      if(data.payment_agreement_id)host.append(button('Open customer payment offer',()=>detail('payment-agreements',data.payment_agreement_id)));
-      else if(data.record.status!=='cancelled')host.append(button('Prepare customer payment offer',async()=>{
+      const review=node('section','');review.className='owner-approval-guide';
+      review.append(node('h4','Review this connection in three steps'));
+      const steps=node('ol','');
+      for(const step of ['Confirm this address, service and installation details in your Vetta portal.',
+         'Check the selected plan and final supplier costs, including any unknown setup fees.',
+         'Prepare and approve a written payment offer. The customer pays only after accepting it.']){
+            steps.append(node('li',step));
+      }
+      review.append(steps,node('p','No automatic Vetta order or Stripe charge happens here.'));
+      host.append(review);
+      if(data.payment_agreement_id){const c=button('Continue: review and approve final offer',()=>detail('payment-agreements',data.payment_agreement_id));c.classList.add('owner-action-primary');host.append(c);}
+      else if(data.record.status!=='cancelled'){const c=button('Continue: prepare the customer offer',async()=>{
         const result=await api('owner/broadband-orders/'+id+'/prepare-offer',{});
         await detail('payment-agreements',result.agreement_id);message(result.message||'Draft offer prepared.');
-      }));
+      });c.classList.add('owner-action-primary');host.append(c);}
     }
     if(data.checklist)host.append(node('p',data.checklist));
     const form=fieldsForm(data);
     form.addEventListener('submit',action(async()=>{
       const values={};for(const field of data.fields){if(field.disabled)continue;const input=form.elements[field.name];values[field.name]=field.type==='checkbox'?input.checked:input.value;}
-      try{const saved=await api('owner/operations/'+kind+'/'+id,{version:data.version,values,confirm_completed:form.elements.confirm_completed?.checked===true});await detail(kind,saved.id);message(saved.message);}
+      try{
+        if(kind==='payment-agreements'&&values.reviewed===true&&!form.elements.vetta_owner_verified?.checked)throw Error('Verify this customer’s address and supplier details in Vetta before approving.');
+        const saved=await api('owner/operations/'+kind+'/'+id,{version:data.version,values,confirm_completed:form.elements.confirm_completed?.checked===true});
+        await detail(kind,saved.id);
+        message(kind==='payment-agreements'&&saved.record?.reviewed===true?'Final customer offer approved. The customer may review and accept it when their payment-start date arrives; no charge or supplier order was created.':saved.message);
+      }
       catch(error){message(error.message);}
     }));host.append(form);
     if(kind==='customers'){const links=node('div','');links.className='actions';for(const type of ['requests','tickets','privacy','invoices'])links.append(button('View '+type,()=>collection(type,1,'',id)));host.append(links);}
