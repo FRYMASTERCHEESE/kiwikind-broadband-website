@@ -40,7 +40,8 @@ function showSignedOut() {
   preferencesLoaded=false;
   $('save-preferences').disabled=true;
   $('account-notifications').disabled=true;
-  for (const id of ['orders','tickets','invoices','live-payments','referral-result','connection-progress']) $(id)?.replaceChildren();
+  for (const id of ['orders','tickets','invoices','live-payments','owner-dollar-payment','referral-result','connection-progress']) $(id)?.replaceChildren();
+  $('owner-dollar-payment')?.classList.add('hidden');
   if($('account-notifications'))$('account-notifications').checked=false;
   if($('confirm-google-deletion'))$('confirm-google-deletion').checked=false;
   if($('create-referral'))$('create-referral').disabled=false;
@@ -103,6 +104,7 @@ async function refresh(savedAccount) {
     }));
   }
   void refreshLivePayments(generation);
+  void refreshOwnerDollar(generation);
   empty('invoices',invoices?'':'Other billing information temporarily unavailable.');
   if(invoices?.invoices?.length)$('invoices').replaceChildren();
   for(const i of invoices?.invoices || []) record($('invoices'),new Intl.NumberFormat('en-NZ',{style:'currency',currency:i.currency}).format(i.amount_cents/100),`${i.status} · Due ${i.due_date}`);
@@ -340,4 +342,51 @@ async function refreshLivePayments(generation=accountGeneration) {
     }
     if(!result.live_payments_enabled)target.prepend(node('p','New payments are currently paused. Existing payment records remain available.'));
   }catch(error){if(generation===accountGeneration)target.replaceChildren(node('p',error.message));}
+}
+
+// Only a proven owner Google+MFA session gets this card. A regular customer
+// receives 403 and never sees the owner verification or its Checkout control.
+async function refreshOwnerDollar(generation=accountGeneration){
+  const target=$('owner-dollar-payment');if(!target)return;
+  target.classList.add('hidden');target.replaceChildren();
+  let result;
+  try{result=await api('owner/dollar-verification',undefined,generation);}
+  catch{return;} // Do not reveal private payment verification to regular accounts.
+  if(generation!==accountGeneration)return;
+  if(result.mode!=='live'||result.currency!=='NZD'||result.amount_cents!==100)return;
+  const card=node('section','');card.className='record';
+  card.append(node('h4','Private owner test · Real NZ$1 (once)'),
+    node('p','This is a one-time Stripe payment to verify KiwiKind website billing. It cannot start a subscription, broadband order or Vetta service.'));
+  const labels={
+    not_started:'Not tested yet.',
+    checkout_open:'A checkout was created; you can resume that SAME checkout. A return redirect is not proof of payment.',
+    paid:'Stripe signed webhook confirmed the NZ$1 payment. Open Stripe Dashboard to refund it.',
+    refunded:'Stripe signed webhook confirmed the payment and full NZ$1 refund.',
+    partially_refunded:'Only part of the NZ$1 was refunded.',
+    disputed:'Stripe needs you to review a payment dispute.',
+  };
+  card.append(node('p',labels[result.state]||'Payment status requires review.'));
+  if(result.enabled===true&&result.can_start===true){
+    const label=node('label','');label.className='check';
+    const consent=document.createElement('input');consent.type='checkbox';
+    label.append(consent,document.createTextNode('I authorise exactly one REAL NZ$1 payment from my own card. No monthly billing.'));card.append(label);
+    const pay=button(result.state==='checkout_open'?'Resume same NZ$1 checkout':'Pay one-time NZ$1 with Stripe',async()=>{
+      if(!consent.checked)throw Error('Confirm the one-time NZ$1 live charge first.');
+      if(!window.confirm('This opens LIVE Stripe Checkout for exactly NZ$1 once. Only submitting your card on Stripe makes the payment. Continue?'))return;
+      pay.disabled=true;
+      try{
+        const reply=await api('owner/dollar-verification/checkout',{confirm_one_time_live_nzd_1:true},generation);
+        if(generation!==accountGeneration)return;
+        if(reply.livemode!==true||reply.mode!=='payment'||reply.recurring!==false
+          ||reply.amount_cents!==100||reply.currency!=='NZD'||!liveCheckoutUrl(reply.url))
+          throw Error('The secure $1 payment destination was rejected.');
+        location.assign(reply.url);
+      }finally{if(generation===accountGeneration)pay.disabled=false;}
+    });
+    card.append(pay);
+  }else if(!result.enabled){
+    card.append(node('p','The live NZ$1 test is not enabled on the secure backend yet. No charge can be started.'));
+  }
+  card.append(node('p','Payment is verified by Stripe’s signed webhook, not this page. Refund from your Stripe Dashboard; payment fees may not be returned.'));
+  target.append(card);target.classList.remove('hidden');
 }
