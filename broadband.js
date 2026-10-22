@@ -103,7 +103,7 @@
     $('monthly').textContent=money(q.monthly_cents);
     $('setup').textContent=q.setup_cents===null?'To confirm':money(q.setup_cents);
     $('due').textContent=q.first_invoice_cents===null?'To confirm':money(q.first_invoice_cents);
-    $('usage').textContent=(q.usage||[]).join(' ') + ' Final installation, changeover, equipment and usage charges depend on your address and must be confirmed before payment.';
+    $('usage').textContent=(q.usage||[]).join(' ') + ' This is an estimate only. Final installation, changeover, equipment and usage charges depend on your address and must be confirmed before payment.';
     $('submit-order').disabled=!account || submitting;
     $('order-plan').disabled=false;
   }
@@ -114,7 +114,7 @@
     try {
       const q=await api('broadband/quote?'+new URLSearchParams({product:selected.id,options:selection().join(',')}));
       if(sequence!==generation)return;
-      renderQuote(q);notice('Prices include GST. Submit your order first; pay after connection confirmation.');
+      renderQuote(q);notice(q.price_status==='needs_supplier_confirmation'?'Supplier rates still need checking. This is a request estimate, not an approved price; do not pay until we confirm all charges.':'Your estimated price includes GST. Installation and supply are confirmed before the final offer and payment.');
     }catch(error){if(sequence===generation)notice(error.message,true);}
   }
   function configure(product, initial) {
@@ -168,12 +168,13 @@
           el('div',money(product.headline_monthly_cents),'price'),el('div','Monthly · incl. GST','period'),
           el('p',product.description,'desc'));
         if(friendlyUse[product.id])card.insertBefore(el('p',friendlyUse[product.id],'best-for'),card.querySelector('.desc'));
+        card.append(el('p',product.price_status==='needs_supplier_confirmation'?'Supplier rate to be confirmed before payment.':'Rate checked; address and setup fees still need confirmation.','plan-price-status'));
         if(product.headline_note)card.append(el('small','Starting tier: '+product.headline_note+'; choose a practical home speed on the next screen.'));
         const choose=el('button','Choose options','cta');choose.type='button';choose.onclick=()=>configure(product,product.id==='ufb'?preferredOptions(product,'500Mbps Down / 100Mbps Up'):null);
         card.append(choose);$('cards').append(card);
       }
       try {const state=await api('bootstrap');account=state.account||null;}catch {account=null;}
-      notice('Start with the simple plan guide, then choose your connection. No payment is taken when you request an address check.');
+      notice('Start with the simple plan guide. Prices are estimates and installation charges depend on the property; no payment is taken when you request an address check.');
       const params=new URLSearchParams(location.search),product=catalogue.products.find(p=>p.id===params.get('plan'));
       if(product)configure(product,(params.get('options')||'').split(','));
     }catch(error){notice(error.message,true);}
