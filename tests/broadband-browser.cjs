@@ -25,6 +25,23 @@ for(const width of [320,390,1365]){
  await page.goto(base);await page.locator('.card').last().waitFor();assert.equal(await page.locator('.card').count(),7);
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
  await page.screenshot({path:path.join(out,`catalogue-${width}.png`),fullPage:true});
+
+ await page.getByRole('button',{name:/I already have fibre/}).click();
+ assert.match(await page.locator('#finder-result-heading').textContent(),/Start with Fibre/);
+ assert.equal(await page.getByRole('button',{name:/I already have fibre/}).getAttribute('aria-pressed'),'true');
+ await page.getByRole('button',{name:'Compare home fibre speeds'}).click();
+ await page.waitForFunction(()=>document.querySelector('#option-0')?.value==='3');
+ await page.waitForFunction(()=>document.querySelector('#monthly').textContent==='$83.41');
+ await page.locator('#back').click();
+ await page.getByRole('button',{name:/I live in the countryside/}).click();
+ assert.match(await page.locator('#finder-result').textContent(),/RBI Rural/);
+ assert.match(await page.locator('#finder-result').textContent(),/Fixed Wireless/);
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+ await page.getByRole('button',{name:/phone-line connection/}).click();
+ assert.match(await page.locator('#finder-result').textContent(),/VDSL/);
+ await page.getByRole('button',{name:/I'm not sure/}).click();
+ assert.match(await page.locator('#finder-result').textContent(),/check your address first/);
+
  await page.locator('.card').filter({has:page.getByRole('heading',{name:'Direct UFB Fibre Broadband',exact:true})}).getByRole('button').click();
  await page.locator('#option-0').selectOption('3');await page.waitForFunction(()=>document.querySelector('#monthly').textContent==='$83.41');
  assert.equal(await page.locator('#setup').textContent(),'$10.00');assert.equal(await page.locator('#due').textContent(),'$93.41');
