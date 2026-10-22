@@ -5,7 +5,13 @@ window.KiwiKindOwnerOps={create({api,action,node,message}){
   function button(label,fn){const b=node('button',label);b.type='button';b.addEventListener('click',action(fn));return b;}
   async function load(){
     if(loaded)return;const current=generation;const result=await api('owner/operations');if(current!==generation)return;
-    $('ops-nav').replaceChildren();for(const item of result.collections)$('ops-nav').append(button(item.label,()=>collection(item.name)));
+    $('ops-nav').replaceChildren();
+    if(result.collections.some(item=>item.name==='requests')){
+      const quick=button('Start here: review broadband requests',()=>collection('requests'));
+      quick.classList.add('priority-requests');
+      $('ops-nav').append(quick);
+    }
+    for(const item of result.collections)$('ops-nav').append(button(item.label,()=>collection(item.name)));
     loaded=true;$('operations').hidden=false;
   }
   async function collection(kind,page=1,q='',customer=''){

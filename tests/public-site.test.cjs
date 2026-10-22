@@ -73,3 +73,13 @@ test('simple Pages navigation keeps customer journeys inside the website',()=>{
  assert.ok(!read('account.html').includes('No domain purchased'));
  assert.ok(css.includes('.kk-shortcuts'));
 });
+
+test('owner request-review shortcut is MFA-gated and does not submit Vetta orders',()=>{
+ const ops=read('owner-ops.js');
+ const page=read('owner.html');
+ assert.ok(ops.includes("item.name==='requests'"));
+ assert.ok(ops.includes('Start here: review broadband requests'));
+ assert.ok(ops.includes("()=>collection('requests')"));
+ assert.ok(page.includes('Confirm each address and connection'));
+ assert.ok(!ops.includes('vetta/orders'));
+});
