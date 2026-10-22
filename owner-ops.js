@@ -67,7 +67,7 @@ window.KiwiKindOwnerOps={create({api,action,node,message}){
         if(!valid){preview.textContent='Enter both confirmed supplier amounts in cents to preview the final customer totals. Unknown setup cannot be approved.';return;}
         const monthly=Math.round(Number(a)*115/100)+300,setup=Math.round(Number(b)*115/100)+1000;
         const money=n=>new Intl.NumberFormat('en-NZ',{style:'currency',currency:'NZD'}).format(n/100);
-        preview.textContent=`Customer offer: ${money(monthly)} per month plus ${money(setup)} setup once. First payment ${money(monthly+setup)}. GST included. These totals already include exactly $3 monthly and $10 setup once.`;
+        preview.textContent=`Customer offer: ${money(monthly)} per month plus ${money(setup)} setup once. First payment ${money(monthly+setup)}. GST included. The displayed monthly and one-time setup charges are final GST-inclusive customer totals.`;
       };
       form.addEventListener('input',event=>{if(event.target.name!=='confirm_live_offer')update();});update();
     }

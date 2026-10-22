@@ -314,7 +314,7 @@ async function refreshLivePayments(generation=accountGeneration) {
     for(const a of result.agreements){
       const monthly=liveMoney(a.monthly_cents),setup=liveMoney(a.setup_cents);
       const card=node('section','');card.className='record';
-      card.append(node('h4',a.label),node('p',`${monthly} per month and ${setup} setup once. First payment: ${liveMoney(a.monthly_cents+a.setup_cents)}. All amounts include GST.`),node('p','These totals already include the $3 monthly addition and $10 one-time setup addition. No extra GST is added to either addition.'),node('p',a.service_terms),node('p',`Payment can begin: ${a.bill_from||'To confirm'}. Status: ${a.status}${a.cancel_at_period_end?' · future billing cancellation requested':''}`));
+      card.append(node('h4',a.label),node('p',`${monthly} per month and ${setup} setup once. First payment: ${liveMoney(a.monthly_cents+a.setup_cents)}. All amounts include GST.`),node('p','The complete monthly price and one-time setup total shown above both include GST. No extra GST is added at checkout.'),node('p',a.service_terms),node('p',`Payment can begin: ${a.bill_from||'To confirm'}. Status: ${a.status}${a.cancel_at_period_end?' · future billing cancellation requested':''}`));
       if(result.live_payments_enabled&&a.ready_to_pay&&a.status==='pending'){
         const label=node('label','');label.className='check';
         const consent=document.createElement('input');consent.type='checkbox';
