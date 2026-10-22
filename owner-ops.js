@@ -11,7 +11,13 @@ window.KiwiKindOwnerOps={create({api,action,node,message}){
       quick.classList.add('priority-requests');
       $('ops-nav').append(quick);
     }
-    for(const item of result.collections)$('ops-nav').append(button(item.label,()=>collection(item.name)));
+    const advanced=node('details',''),summary=node('summary','Advanced test records (owner only)');
+    advanced.append(summary);
+    for(const item of result.collections){
+      if(item.name.startsWith('test-'))advanced.append(button(item.label,()=>collection(item.name)));
+      else $('ops-nav').append(button(item.label,()=>collection(item.name)));
+    }
+    if(advanced.children.length>1)$('ops-nav').append(advanced);
     loaded=true;$('operations').hidden=false;
   }
   async function collection(kind,page=1,q='',customer=''){
