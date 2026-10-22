@@ -54,6 +54,22 @@ test('never leak server credentials, private quotes or supplier contracts',()=>{
 test('the Pages deploy tests and exports only allowlisted public files',()=>{
  assert.ok(workflow.includes('node --test tests/*.test.cjs'));
  assert.ok(workflow.indexOf('node --test tests/*.test.cjs')<workflow.indexOf('Stage only approved public assets'));
- assert.ok(workflow.includes('account.html account.js account.css readiness.js owner.html owner.js owner.css owner-ops.js owner-scenarios.js broadband.html broadband.js broadband.css; do'));
+ assert.ok(workflow.includes('account.html account.js account.css readiness.js owner.html owner.js owner.css owner-ops.js owner-scenarios.js broadband.html broadband.js broadband.css navigation.css navigation.js; do'));
  assert.ok(!workflow.includes('cp -r'));
+});
+
+test('simple Pages navigation keeps customer journeys inside the website',()=>{
+ const nav=read('navigation.js');const css=read('navigation.css');
+ for(const page of ['index.html','broadband.html','account.html','owner.html']){
+  assert.ok(read(page).includes('src="./navigation.js"'));
+  assert.ok(read(page).includes('href="./navigation.css"'));
+ }
+ assert.ok(nav.includes('My orders'));
+ assert.ok(nav.includes('Payment offers'));
+ assert.ok(nav.includes('Support'));
+ assert.ok(nav.includes('Find a broadband type'));
+ assert.ok(nav.includes('No Vetta order is placed automatically'));
+ assert.ok(read('account.html').includes('id="customer-orders"'));
+ assert.ok(!read('account.html').includes('No domain purchased'));
+ assert.ok(css.includes('.kk-shortcuts'));
 });
