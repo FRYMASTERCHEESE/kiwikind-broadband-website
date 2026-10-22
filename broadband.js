@@ -114,7 +114,7 @@
     try {
       const q=await api('broadband/quote?'+new URLSearchParams({product:selected.id,options:selection().join(',')}));
       if(sequence!==generation)return;
-      renderQuote(q);notice(!['verified_speed_address_review_required','screen_checked'].includes(q.price_status)?'Supplier rates still need checking. This is a request estimate, not an approved price; do not pay until we confirm all charges.':'Your estimated price includes GST. Installation and supply are confirmed before the final offer and payment.');
+      renderQuote(q);notice(!['verified','verified_speed_address_review_required','screen_checked'].includes(q.price_status)?'Supplier rates still need checking. This is a request estimate, not an approved price; do not pay until we confirm all charges.':'Your estimated price includes GST. Installation and supply are confirmed before the final offer and payment.');
     }catch(error){if(sequence===generation)notice(error.message,true);}
   }
   function configure(product, initial) {
@@ -168,7 +168,7 @@
           el('div',money(product.headline_monthly_cents),'price'),el('div','Monthly · incl. GST','period'),
           el('p',product.description,'desc'));
         if(friendlyUse[product.family||product.id])card.insertBefore(el('p',friendlyUse[product.family||product.id],'best-for'),card.querySelector('.desc'));
-        card.append(el('p',!['verified_speed_address_review_required','screen_checked'].includes(product.price_status)?'Supplier rate to be confirmed before payment.':'Rate checked; address and setup fees still need confirmation.','plan-price-status'));
+        card.append(el('p',!['verified','verified_speed_address_review_required','screen_checked'].includes(product.price_status)?'Supplier rate to be confirmed before payment.':'Rate checked; address and setup fees still need confirmation.','plan-price-status'));
         if(product.allowance)card.append(el('p',product.allowance,'allowance'));
         if(product.terms)card.append(el('p',product.terms,'fine'));
         if(product.default_quote){const q=product.default_quote;card.append(el('p',`Setup once: ${q.setup_cents===null?'To confirm':money(q.setup_cents)} · First payment: ${q.first_invoice_cents===null?'To confirm':money(q.first_invoice_cents)} including GST`,'fine'));}
