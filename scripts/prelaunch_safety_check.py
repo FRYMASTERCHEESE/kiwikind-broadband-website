@@ -66,10 +66,10 @@ def validate_public(status_json, plans_json, pages):
             raise PrelaunchCheckError("A public policy page did not return HTML.")
         if "KiwiKind Broadband" not in html:
             raise PrelaunchCheckError("A public policy page is not KiwiKind branded.")
-    if "No broadband services currently offered" not in pages[""]:
-        raise PrelaunchCheckError("The public website no longer displays prelaunch safeguards.")
-    if "No live broadband products" not in pages["terms.html"]:
-        raise PrelaunchCheckError("Public prelaunch terms are missing the no-sales statement.")
+    if "Broadband orders are subject to address and connection confirmation" not in pages[""]:
+        raise PrelaunchCheckError("The public website no longer explains connection confirmation.")
+    if "Confirmation before payment" not in pages["terms.html"]:
+        raise PrelaunchCheckError("Public terms are missing the confirmation-before-payment statement.")
     return True
 
 
@@ -84,18 +84,37 @@ def private_payments_require_signin():
         return False
 
 
+def validate_catalogue(raw):
+    try:
+        data=json.loads(raw)
+        assert data['orders_enabled'] is True
+        assert data['supplier_orders_enabled'] is False
+        assert data['payment_timing']=='after_connection_confirmation'
+        assert data['gst_included'] is True and data['currency']=='NZD'
+        assert data['monthly_addition_cents']==300 and data['setup_addition_cents']==1000
+        assert {p['id'] for p in data['products']}=={'adsl','vdsl','ufb','vector','rbi','fixed-wireless','mobile-4g'}
+        for product in data['products']:
+            q=product['default_quote']
+            assert type(q['monthly_cents']) is int and q['monthly_cents']>300
+            assert q['setup_cents'] is None or q['setup_cents']>=1000
+    except (AssertionError,KeyError,TypeError,ValueError):
+        raise PrelaunchCheckError('Broadband catalogue, GST additions or confirmation gates changed.') from None
+    return True
+
+
 def main(fetch=get_text, check_private=private_payments_require_signin):
     try:
         status = fetch(API + "/api/status")
         plans = fetch(API + "/api/plans")
         pages = {path: fetch(SITE + path) for path in POLICIES}
         validate_public(status, plans, pages)
+        validate_catalogue(fetch(API + '/api/broadband/catalogue'))
         if not check_private():
             raise PrelaunchCheckError('Private payment access could not be verified as requiring sign-in.')
     except PrelaunchCheckError as exc:
         print("KIWIKIND_PRELAUNCH_CHECK_FAILED: " + str(exc), file=sys.stderr)
         return 1
-    print("KIWIKIND_PRELAUNCH_CHECK_PASS: public pages available; no public plans or orders; private payments require sign-in.")
+    print("KIWIKIND_PRELAUNCH_CHECK_PASS: public pages available; legacy intake and supplier orders disabled; payments require sign-in and confirmation.")
     return 0
 
 

@@ -2,9 +2,9 @@
 (async () => {
   const target = document.getElementById('public-plans');
   try {
-    const response = await fetch('https://kiwikind-backend.onrender.com/api/plans', {credentials:'omit', cache:'no-store', signal:AbortSignal.timeout(15000)});
+    const response = await fetch('https://kiwikind-backend.onrender.com/api/broadband/catalogue', {credentials:'omit', cache:'no-store', signal:AbortSignal.timeout(75000)});
     if (!response.ok) throw new Error('Unavailable');
-    const {plans} = await response.json();
+    const {products:plans} = await response.json();
     if (!Array.isArray(plans)) throw new Error('Invalid catalogue');
     if (!plans.length) return;
     target.replaceChildren();
@@ -12,9 +12,9 @@
     for (const plan of plans) {
       const card = document.createElement('article'); card.className='card';
       const title = document.createElement('h3'); title.textContent=plan.name;
-      const price = document.createElement('p'); price.textContent=`${money(plan.retail_monthly_cents)}/month · ${money(plan.retail_setup_cents)} setup incl GST`;
-      const detail = document.createElement('p'); detail.textContent=`${plan.download_mbps}/${plan.upload_mbps} Mbps · ${plan.network} · valid to ${plan.valid_until}. Address availability unverified.`;
-      card.append(title,price,detail); target.append(card);
+      const price = document.createElement('p'); price.textContent=`From ${money(plan.headline_monthly_cents)}/month including GST${plan.headline_note?' · '+plan.headline_note:''}`;
+      const link=document.createElement('a');link.className='cta';link.textContent='Choose options';link.href='./broadband.html?'+new URLSearchParams({plan:plan.id});
+      card.append(title,price,link); target.append(card);
     }
-  } catch { target.textContent='Plans are temporarily unavailable. No prices or address availability are confirmed.'; }
+  } catch { /* Keep the static catalogue link visible while the service wakes. */ }
 })();

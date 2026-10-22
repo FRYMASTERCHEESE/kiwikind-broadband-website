@@ -1,9 +1,10 @@
 """Offline-only tests: never contact live site or payment accounts."""
 import json
 import unittest
+from pathlib import Path
 
 from scripts.prelaunch_safety_check import (
-    API, SITE, POLICIES, PrelaunchCheckError, main, validate_public,
+    API, SITE, POLICIES, PrelaunchCheckError, main, validate_public, validate_catalogue,
 )
 
 STATUS = json.dumps({
@@ -11,10 +12,11 @@ STATUS = json.dumps({
     "billing_enabled": False, "live_services": False,
 })
 PLANS = json.dumps({"plans": [], "live_orders_enabled": False})
+CATALOGUE=json.loads((Path(__file__).parent/'broadband-fixture.json').read_text())['catalogue']
 PAGES = {path: (
     "<!doctype html><html><body>KiwiKind Broadband " +
-    ("No live broadband products" if path == "terms.html" else "") +
-    ("No broadband services currently offered" if path == "" else "") +
+    ("Confirmation before payment" if path == "terms.html" else "") +
+    ("Broadband orders are subject to address and connection confirmation" if path == "" else "") +
     "</body></html>"
 ) for path in POLICIES}
 
@@ -68,6 +70,7 @@ class PrelaunchSafetyChecks(unittest.TestCase):
     def test_fetch_only_public_https_read_endpoints(self):
         touched = []
         data = {API + "/api/status": STATUS, API + "/api/plans": PLANS}
+        data[API+'/api/broadband/catalogue']=json.dumps(CATALOGUE)
         data.update({SITE + path: value for path, value in PAGES.items()})
 
         def fake_fetch(url):
@@ -76,10 +79,16 @@ class PrelaunchSafetyChecks(unittest.TestCase):
 
         self.assertEqual(main(fetch=fake_fetch,check_private=lambda:True), 0)
         self.assertEqual(main(fetch=fake_fetch,check_private=lambda:False), 1)
-        self.assertEqual(len(touched), 12)
+        self.assertEqual(len(touched), 14)
         self.assertTrue(all(url.startswith("https://") for url in touched))
         self.assertFalse(any("checkout" in url or "webhook" in url or
                              "admin" in url or "customer" in url for url in touched))
+
+    def test_catalogue_additions_and_confirmation_gate(self):
+        self.assertTrue(validate_catalogue(json.dumps(CATALOGUE)))
+        for key,value in [('monthly_addition_cents',345),('setup_addition_cents',1150),('supplier_orders_enabled',True),('payment_timing','immediate')]:
+            with self.subTest(key=key),self.assertRaises(PrelaunchCheckError):
+                validate_catalogue(json.dumps({**CATALOGUE,key:value}))
 
 
 if __name__ == "__main__":
