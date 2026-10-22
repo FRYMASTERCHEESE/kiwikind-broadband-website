@@ -23,12 +23,17 @@ class PrelaunchSafetyChecks(unittest.TestCase):
     def test_fresh_prelaunch_passes(self):
         self.assertTrue(validate_public(STATUS, PLANS, PAGES))
 
-    def test_fails_if_live_billing_or_intake_turns_on(self):
-        for key in ("intake_enabled", "billing_enabled", "live_services"):
+    def test_fails_if_public_intake_or_services_turn_on(self):
+        for key in ("intake_enabled", "live_services"):
             changed = json.loads(STATUS)
             changed[key] = True
             with self.subTest(key=key), self.assertRaises(PrelaunchCheckError):
                 validate_public(json.dumps(changed), PLANS, PAGES)
+
+    def test_separate_private_billing_switch_does_not_enable_public_orders(self):
+        changed=json.loads(STATUS)
+        changed['billing_enabled']=True
+        self.assertTrue(validate_public(json.dumps(changed),PLANS,PAGES))
 
     def test_fails_if_any_public_plans_or_supplier_orders_enabled(self):
         for changed in (
@@ -69,8 +74,9 @@ class PrelaunchSafetyChecks(unittest.TestCase):
             touched.append(url)
             return data[url]
 
-        self.assertEqual(main(fetch=fake_fetch), 0)
-        self.assertEqual(len(touched), 6)
+        self.assertEqual(main(fetch=fake_fetch,check_private=lambda:True), 0)
+        self.assertEqual(main(fetch=fake_fetch,check_private=lambda:False), 1)
+        self.assertEqual(len(touched), 12)
         self.assertTrue(all(url.startswith("https://") for url in touched))
         self.assertFalse(any("checkout" in url or "webhook" in url or
                              "admin" in url or "customer" in url for url in touched))

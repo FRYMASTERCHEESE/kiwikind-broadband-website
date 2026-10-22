@@ -146,7 +146,7 @@ async function init(){
     await api('pages/cookie-probe',{});
     if(!(await api('pages/session-probe')).session_cookie)throw Error('Session cookie blocked');
     intake=s.intake_enabled;registrationEnabled=s.registration_enabled===true;
-    $('connection-status').textContent=registrationEnabled?'Accounts open · broadband orders and payments closed':'Portal connected · account registration is closed';
+    $('connection-status').textContent=registrationEnabled?'Accounts open · public broadband orders closed':'Portal connected · account registration is closed';
     if(s.legal_entity && s.business_contact && s.privacy_contact)$('legal-identity').textContent=`Operator: ${s.legal_entity}. Business contact: ${s.business_contact}. Privacy contact: ${s.privacy_contact}. Pre-launch only.`;
     $('toggle-auth').disabled=false;
     $('retry-connection').classList.add('hidden');
