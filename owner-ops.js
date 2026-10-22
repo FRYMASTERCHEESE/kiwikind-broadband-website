@@ -39,6 +39,20 @@ window.KiwiKindOwnerOps={create({api,action,node,message}){
       form.append(label);
     }
     if(data.kind==='privacy'&&data.editable){const label=node('label','I confirm any requested manual fulfilment and lawful retention review are complete. This records review status; it does not delete customer data.');const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.name='confirm_completed';label.prepend(checkbox);form.append(label);}
+    if(data.kind==='payment-agreements'&&data.editable){
+      const preview=node('p','');preview.setAttribute('role','status');form.append(preview);
+      const update=()=>{
+        const a=form.elements.source_monthly_cents.value,b=form.elements.source_setup_cents.value;
+        const valid=[a,b].every(v=>/^\d+$/.test(v)&&Number(v)<=1000000);
+        const approval=form.elements.confirm_live_offer;
+        if(approval){approval.checked=false;approval.disabled=!valid;}
+        if(!valid){preview.textContent='Enter both confirmed supplier amounts in cents to preview the final customer totals. Unknown setup cannot be approved.';return;}
+        const monthly=Math.round(Number(a)*115/100)+300,setup=Math.round(Number(b)*115/100)+1000;
+        const money=n=>new Intl.NumberFormat('en-NZ',{style:'currency',currency:'NZD'}).format(n/100);
+        preview.textContent=`Customer offer: ${money(monthly)} per month plus ${money(setup)} setup once. First payment ${money(monthly+setup)}. GST included. These totals already include exactly $3 monthly and $10 setup once.`;
+      };
+      form.addEventListener('input',event=>{if(event.target.name!=='confirm_live_offer')update();});update();
+    }
     if(data.editable)form.append(node('button','Save private record'));
     return form;
   }

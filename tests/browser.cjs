@@ -16,7 +16,7 @@ const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+deco
   for(const width of [320,390,768,1365]){
    const context=await browser.newContext({viewport:{width,height:900}});
    const page=await context.newPage();const errors=[];page.on('pageerror',error=>errors.push(error.message));
-   let signedIn=false,ownerVerified=false,blocked=false,ownerSave=null,preferenceSave=null,delayExport=false,pendingExport=null,delayMfa=true,pendingMfa=null;
+   let signedIn=false,ownerVerified=false,blocked=false,ownerSave=null,preferenceSave=null,delayExport=false,pendingExport=null,delayMfa=true,pendingMfa=null,paymentCalls=0;
    await page.route('https://accounts.google.com/**',route=>route.abort());
    await page.route('https://kiwikind-backend.onrender.com/api/**',async route=>{
     const req=route.request();const endpoint=new URL(req.url()).pathname.slice(5);
@@ -27,6 +27,8 @@ const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+deco
     else if(endpoint==='login'){signedIn=true;data={email:'synthetic@example.invalid',csrfToken:'rotated-synthetic-csrf'};}
     else if(endpoint==='me')data={email:'synthetic@example.invalid'};
     else if(endpoint==='orders')data={orders:[]};else if(endpoint==='tickets')data={tickets:[]};else if(endpoint==='invoices')data={invoices:[{currency:'NZD',amount_cents:1234,status:'synthetic',due_date:'2026-10-22'}]};
+    else if(endpoint==='payments/summary')data={mode:'live',live_payments_enabled:true,agreements:[{id:'synthetic-offer',terms_version:'synthetic-terms',label:'Synthetic private payment offer',monthly_cents:11800,setup_cents:3300,service_terms:'Synthetic agreed service terms',bill_from:'2026-10-22',status:'pending',ready_to_pay:true,invoices:[]}]};
+    else if(endpoint==='payments/checkout'){paymentCalls++;assert.deepEqual(JSON.parse(req.postData()),{agreement_id:'synthetic-offer',terms_version:'synthetic-terms',accept_live_recurring:true});data={livemode:true,url:'https://evil.invalid/c/pay/cs_live_synthetic'};}
     else if(endpoint==='preferences'){if(req.method()==='POST')preferenceSave=JSON.parse(req.postData());data={account_notifications:true};}
     else if(endpoint==='privacy/export'){if(delayExport){pendingExport=route;return;}data={synthetic:true};}
     else if(endpoint==='logout'){signedIn=false;data={message:'Signed out'};}
@@ -61,6 +63,15 @@ const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+deco
    assert.equal(await page.locator('#account-email').textContent(),'synthetic@example.invalid');
    await page.locator('#invoices').getByText(/12.34/).waitFor();
    assert.equal((await page.locator('#invoices').textContent()).includes('No invoices.'),false);
+   await page.locator('#live-payments').getByText('Synthetic private payment offer',{exact:true}).waitFor();
+   assert.match(await page.locator('#live-payments').textContent(),/118.00 per month and \$33.00 setup once/);
+   await page.locator('#live-payments').getByRole('button',{name:'Continue to secure Stripe checkout'}).click();
+   await page.getByText('Please accept the displayed recurring payment terms first.',{exact:true}).waitFor();
+   assert.equal(paymentCalls,0,'No payment call before customer consent');
+   await page.locator('#live-payments input[type=checkbox]').check();
+   await page.locator('#live-payments').getByRole('button',{name:'Continue to secure Stripe checkout'}).click();
+   await page.getByText('Unrecognised payment destination. Nothing opened.',{exact:true}).waitFor();
+   assert.equal(paymentCalls,1);assert.ok(page.url().startsWith(base),'Unsafe payment URL must not navigate');
    assert.equal(await page.locator('#save-preferences').isDisabled(),true);
    await page.locator('#load-preferences').click();
    await page.locator('#save-preferences:not([disabled])').waitFor();

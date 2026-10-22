@@ -39,7 +39,7 @@ function showSignedOut() {
   preferencesLoaded=false;
   $('save-preferences').disabled=true;
   $('account-notifications').disabled=true;
-  for (const id of ['orders','tickets','invoices','referral-result','connection-progress']) $(id)?.replaceChildren();
+  for (const id of ['orders','tickets','invoices','live-payments','referral-result','connection-progress']) $(id)?.replaceChildren();
   if($('account-notifications'))$('account-notifications').checked=false;
   if($('confirm-google-deletion'))$('confirm-google-deletion').checked=false;
   if($('create-referral'))$('create-referral').disabled=false;
@@ -88,7 +88,8 @@ async function refresh(savedAccount) {
       conversation.append(form);el.replaceChildren(node('strong',ticket.subject),conversation);
     }));
   }
-  empty('invoices',invoices?'No invoices.':'Billing information temporarily unavailable.');
+  void refreshLivePayments(generation);
+  empty('invoices',invoices?'':'Other billing information temporarily unavailable.');
   if(invoices?.invoices?.length)$('invoices').replaceChildren();
   for(const i of invoices?.invoices || []) record($('invoices'),new Intl.NumberFormat('en-NZ',{style:'currency',currency:i.currency}).format(i.amount_cents/100),`${i.status} · Due ${i.due_date}`);
   $('order-submit').disabled=!intake;
@@ -271,3 +272,53 @@ window.addEventListener('offline', () => {
 
 // Private data is never retained in browser history snapshots.
 window.addEventListener('pageshow',event=>{if(event.persisted)location.reload();});
+
+// Only the signed-in server ledger supplies payment totals. Browser returns
+// never mark an invoice paid; refresh receives reconciled Stripe updates.
+function liveMoney(cents) {
+  if (!Number.isSafeInteger(cents) || cents < 0) throw Error('Invalid payment amount. Contact KiwiKind.');
+  return new Intl.NumberFormat('en-NZ',{style:'currency',currency:'NZD'}).format(cents/100);
+}
+function liveCheckoutUrl(value) {
+  try {const u=new URL(value);return u.protocol==='https:'&&u.hostname==='checkout.stripe.com'&&!u.username&&!u.password&&(!u.port||u.port==='443')&&u.pathname.startsWith('/c/pay/cs_live_')&&!/[\s\\]/.test(value);}catch{return false;}
+}
+async function refreshLivePayments(generation=accountGeneration) {
+  const target=$('live-payments');if(!target)return;
+  try {
+    const result=await api('payments/summary',undefined,generation);
+    if(generation!==accountGeneration)return;
+    target.replaceChildren();
+    if(result.mode!=='live')throw Error('Unexpected payment mode. Nothing was submitted.');
+    if(!result.agreements?.length){target.append(node('p','No approved payment offer is assigned to your account.'));return;}
+    for(const a of result.agreements){
+      const monthly=liveMoney(a.monthly_cents),setup=liveMoney(a.setup_cents);
+      const card=node('section','');card.className='record';
+      card.append(node('h4',a.label),node('p',`${monthly} per month and ${setup} setup once. First payment: ${liveMoney(a.monthly_cents+a.setup_cents)}. All amounts include GST.`),node('p','These totals already include the $3 monthly addition and $10 one-time setup addition. No extra GST is added to either addition.'),node('p',a.service_terms),node('p',`Payment can begin: ${a.bill_from||'To confirm'}. Status: ${a.status}${a.cancel_at_period_end?' · future billing cancellation requested':''}`));
+      if(result.live_payments_enabled&&a.ready_to_pay&&a.status==='pending'){
+        const label=node('label','');label.className='check';
+        const consent=document.createElement('input');consent.type='checkbox';
+        label.append(consent,document.createTextNode(`I accept these terms and authorise ${monthly} every month plus ${setup} once. My account email and agreement reference will be sent to Stripe. Payment does not automatically activate broadband.`));card.append(label);
+        const pay=button('Continue to secure Stripe checkout',async()=>{
+          if(!consent.checked)throw Error('Please accept the displayed recurring payment terms first.');
+          pay.disabled=true;
+          try{
+            const reply=await api('payments/checkout',{agreement_id:a.id,terms_version:a.terms_version,accept_live_recurring:true},generation);
+            if(generation!==accountGeneration)return;
+            if(reply.livemode!==true||!liveCheckoutUrl(reply.url))throw Error('Unrecognised payment destination. Nothing opened.');
+            location.assign(reply.url);
+          }finally{if(generation===accountGeneration)pay.disabled=false;}
+        });card.append(pay);
+      }
+      if(a.can_manage&&!a.cancel_at_period_end&&!['pending','canceled','incomplete_expired'].includes(a.status)){
+        const cancel=button('Stop future subscription payments',async()=>{
+          if(!window.confirm('Stop future subscription billing at the current period end? Contact KiwiKind separately to confirm broadband cancellation and any contractual obligations.'))return;
+          cancel.disabled=true;
+          try{const reply=await api('payments/cancel',{agreement_id:a.id,accept_live_cancel:true},generation);if(generation!==accountGeneration)return;notice(reply.message);await refreshLivePayments(generation);}finally{if(generation===accountGeneration)cancel.disabled=false;}
+        });card.append(cancel);
+      }
+      for(const invoice of a.invoices||[])card.append(node('p',`Invoice: ${liveMoney(invoice.amount_cents)} · ${invoice.status} · refunded ${liveMoney(invoice.refunded_cents)}${invoice.dispute_status?' · dispute '+invoice.dispute_status:''}`));
+      target.append(card);
+    }
+    if(!result.live_payments_enabled)target.prepend(node('p','New payments are currently paused. Existing payment records remain available.'));
+  }catch(error){if(generation===accountGeneration)target.replaceChildren(node('p',error.message));}
+}
