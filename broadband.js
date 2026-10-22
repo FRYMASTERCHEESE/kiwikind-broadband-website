@@ -114,7 +114,7 @@
     try {
       const q=await api('broadband/quote?'+new URLSearchParams({product:selected.id,options:selection().join(',')}));
       if(sequence!==generation)return;
-      renderQuote(q);notice(q.price_status==='needs_supplier_confirmation'?'Supplier rates still need checking. This is a request estimate, not an approved price; do not pay until we confirm all charges.':'Your estimated price includes GST. Installation and supply are confirmed before the final offer and payment.');
+      renderQuote(q);notice(!['verified_speed_address_review_required','screen_checked'].includes(q.price_status)?'Supplier rates still need checking. This is a request estimate, not an approved price; do not pay until we confirm all charges.':'Your estimated price includes GST. Installation and supply are confirmed before the final offer and payment.');
     }catch(error){if(sequence===generation)notice(error.message,true);}
   }
   function configure(product, initial) {
@@ -168,7 +168,7 @@
           el('div',money(product.headline_monthly_cents),'price'),el('div','Monthly · incl. GST','period'),
           el('p',product.description,'desc'));
         if(friendlyUse[product.id])card.insertBefore(el('p',friendlyUse[product.id],'best-for'),card.querySelector('.desc'));
-        card.append(el('p',product.price_status==='needs_supplier_confirmation'?'Supplier rate to be confirmed before payment.':'Rate checked; address and setup fees still need confirmation.','plan-price-status'));
+        card.append(el('p',!['verified_speed_address_review_required','screen_checked'].includes(product.price_status)?'Supplier rate to be confirmed before payment.':'Rate checked; address and setup fees still need confirmation.','plan-price-status'));
         if(product.headline_note)card.append(el('small','Starting tier: '+product.headline_note+'; choose a practical home speed on the next screen.'));
         const choose=el('button','Choose options','cta');choose.type='button';choose.onclick=()=>configure(product,product.id==='ufb'?preferredOptions(product,'500Mbps Down / 100Mbps Up'):null);
         card.append(choose);$('cards').append(card);
