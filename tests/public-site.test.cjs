@@ -31,15 +31,15 @@ test('public privacy terms and deletion pages work without waking the backend',(
  }
  assert.ok(privacy.includes('href="./terms.html"'));
  assert.ok(deletion.includes('href="./terms.html"'));
- assert.ok(terms.includes('No live broadband products'));
+ assert.ok(terms.includes('No payment is taken and no service is activated at that stage.'));
  assert.ok(terms.includes('No live service-support SLA'));
 });
-test('business identity is correct and public broadband sales remain off',()=>{
+test('business identity and confirmation-before-payment flow are clear',()=>{
  assert.ok(landing.includes('KiwiKind Broadband Limited · NZBN 9429054036550'));
  assert.ok(terms.includes('company number'));
- assert.ok(landing.includes('No broadband services currently offered'));
- assert.ok(landing.includes('No plans are currently published.'));
- assert.ok(terms.includes('does not authorise live payments'));
+ assert.ok(landing.includes('Broadband orders are subject to address and connection confirmation'));
+ assert.ok(landing.includes('./broadband.html'));
+ assert.ok(terms.includes('payment requires your separate acceptance of the final offer'));
 });
 test('never leak server credentials, private quotes or supplier contracts',()=>{
  for(const file of ['index.html','privacy.html','terms.html','account-deletion.html','plans.js']){
@@ -54,6 +54,6 @@ test('never leak server credentials, private quotes or supplier contracts',()=>{
 test('the Pages deploy tests and exports only allowlisted public files',()=>{
  assert.ok(workflow.includes('node --test tests/*.test.cjs'));
  assert.ok(workflow.indexOf('node --test tests/*.test.cjs')<workflow.indexOf('Stage only approved public assets'));
- assert.ok(workflow.includes('account.html account.js account.css readiness.js owner.html owner.js owner.css owner-ops.js owner-scenarios.js; do'));
+ assert.ok(workflow.includes('account.html account.js account.css readiness.js owner.html owner.js owner.css owner-ops.js owner-scenarios.js broadband.html broadband.js broadband.css; do'));
  assert.ok(!workflow.includes('cp -r'));
 });

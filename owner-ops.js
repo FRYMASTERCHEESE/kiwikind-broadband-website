@@ -60,6 +60,19 @@ window.KiwiKindOwnerOps={create({api,action,node,message}){
     const current=++generation;const data=await api('owner/operations/'+kind+'/'+id);if(current!==generation)return;
     const host=$('ops-content');host.replaceChildren(button('Back to records',()=>collection(kind)),node('h3',kind.replaceAll('-',' ')+' · '+id));
     for(const [key,value] of Object.entries(data.record))host.append(node('p',key.replaceAll('_',' ')+': '+(value??'Unknown')));
+    if(data.broadband){
+      const q=data.broadband,money=n=>new Intl.NumberFormat('en-NZ',{style:'currency',currency:'NZD'}).format(n/100);
+      host.append(node('h4','Customer broadband selection'),node('p',q.name));
+      for(const o of q.options)host.append(node('p',o.group+': '+o.name));
+      host.append(node('p',money(q.monthly_cents)+'/month · '+(q.setup_cents===null?'Setup to confirm':money(q.setup_cents)+' setup once')+' · GST included'));
+      for(const usage of q.usage)host.append(node('p',usage));
+      host.append(node('p','Confirm the address and connection details manually in Vetta. Prepare the offer, complete the service terms and payment date, then approve it. No supplier order is submitted by this website.'));
+      if(data.payment_agreement_id)host.append(button('Open customer payment offer',()=>detail('payment-agreements',data.payment_agreement_id)));
+      else if(data.record.status!=='cancelled')host.append(button('Prepare customer payment offer',async()=>{
+        const result=await api('owner/broadband-orders/'+id+'/prepare-offer',{});
+        await detail('payment-agreements',result.agreement_id);message(result.message||'Draft offer prepared.');
+      }));
+    }
     if(data.checklist)host.append(node('p',data.checklist));
     const form=fieldsForm(data);
     form.addEventListener('submit',action(async()=>{

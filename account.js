@@ -35,6 +35,7 @@ function showSignedOut() {
   $('signed-in-email').textContent='';
   $('account-email').textContent='';
   $('owner-admin-link')?.remove();
+  $('continue-plan')?.remove();
   for(const id of ['auth-form','order-form','ticket-form','deletion-form','preferences-form','reset-request-form'])$(id)?.reset();
   preferencesLoaded=false;
   $('save-preferences').disabled=true;
@@ -60,6 +61,13 @@ async function refresh(savedAccount) {
   document.body.classList.add('dashboard-open');
   updateAccountNavigation(true); document.body.classList.remove('account-open','signup-view'); if(location.hash==='#signin'||location.hash==='#signup'){history.replaceState(null,'',location.pathname+location.search);} $('auth-area').classList.add('hidden'); $('dashboard').classList.remove('hidden'); $('account-email').textContent=me.email; $('signed-in-email').textContent=me.email; $('signed-in-bar').classList.remove('hidden');
   $('owner-admin-link')?.remove();
+  $('continue-plan')?.remove();
+  const chosen=new URLSearchParams(location.search);
+  if(/^[a-z0-9-]{1,30}$/.test(chosen.get('plan')||'')&&/^[0-9,]{1,30}$/.test(chosen.get('options')||'')){
+    const link=node('a','Continue with your chosen broadband plan →');link.id='continue-plan';link.className='button';
+    link.href='./broadband.html?'+new URLSearchParams({plan:chosen.get('plan'),options:chosen.get('options')});
+    $('signed-in-bar').append(link);
+  }
   const results=await Promise.allSettled([api('orders', undefined, generation),api('tickets', undefined, generation),api('invoices', undefined, generation)]);
   if (generation !== accountGeneration) {
     if (results.some(r=>r.status==='rejected' && r.reason?.status===401)) throw new Error('Please sign in again.');
@@ -72,7 +80,13 @@ async function refresh(savedAccount) {
   empty('orders',orders?'No requests yet.':'Requests temporarily unavailable.'); if(orders?.orders?.length) $('orders').replaceChildren();
   for(const order of orders?.orders || []) {
     const el=record($('orders'),order.address, `${order.status} · ${date(order.created_at)} · ${order.id}`);
-    if(order.status!=='cancelled') el.append(button('Cancel request',async()=>{await api(`orders/${order.id}/cancel`,{}); await refresh(); notice('Request cancelled.');}));
+    if(order.broadband){
+      const q=order.broadband,money=n=>new Intl.NumberFormat('en-NZ',{style:'currency',currency:'NZD'}).format(n/100);
+      el.append(node('strong',q.name),node('p',q.options.map(o=>o.group+': '+o.name).join(' · ')),
+        node('p',money(q.monthly_cents)+'/month · '+(q.setup_cents===null?'Setup to confirm':money(q.setup_cents)+' setup once')+' · GST included'));
+      if(order.status!=='cancelled')el.append(node('p',order.payment_offer_available?'Your final offer is available under Billing. Review it before payment.':'Awaiting address and connection confirmation. No payment is due yet.'));
+    }
+    if(order.status!=='cancelled'&&order.can_cancel_request!==false) el.append(button('Cancel request',async()=>{await api(`orders/${order.id}/cancel`,{}); await refresh(); notice('Request cancelled.');}));
   }
   empty('tickets',tickets?'No conversations yet.':'Conversations temporarily unavailable.'); if(tickets?.tickets?.length) $('tickets').replaceChildren();
   for(const ticket of tickets?.tickets || []) {
@@ -146,8 +160,8 @@ async function init(){
     await api('pages/cookie-probe',{});
     if(!(await api('pages/session-probe')).session_cookie)throw Error('Session cookie blocked');
     intake=s.intake_enabled;registrationEnabled=s.registration_enabled===true;
-    $('connection-status').textContent=registrationEnabled?'Accounts open · public broadband orders closed':'Portal connected · account registration is closed';
-    if(s.legal_entity && s.business_contact && s.privacy_contact)$('legal-identity').textContent=`Operator: ${s.legal_entity}. Business contact: ${s.business_contact}. Privacy contact: ${s.privacy_contact}. Pre-launch only.`;
+    $('connection-status').textContent=s.broadband_ordering_enabled?'Broadband plans open · pay after confirmation':registrationEnabled?'Accounts open · payment follows connection confirmation':'Portal connected · account registration is closed';
+    if(s.legal_entity && s.business_contact && s.privacy_contact)$('legal-identity').textContent=`Operator: ${s.legal_entity}. Business contact: ${s.business_contact}. Privacy contact: ${s.privacy_contact}. Broadband payments follow connection confirmation.`;
     $('toggle-auth').disabled=false;
     $('retry-connection').classList.add('hidden');
     const hash=location.hash;
