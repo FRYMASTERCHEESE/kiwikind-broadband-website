@@ -108,6 +108,11 @@ async function refresh(savedAccount) {
   for(const i of invoices?.invoices || []) record($('invoices'),new Intl.NumberFormat('en-NZ',{style:'currency',currency:i.currency}).format(i.amount_cents/100),`${i.status} · Due ${i.due_date}`);
   $('order-submit').disabled=!intake;
   $('refresh-account')?.classList.remove('hidden');
+  const requestedView=new URLSearchParams(location.search).get('view');
+  const destinations={orders:'customer-orders',payments:'customer-payments',support:'customer-support'};
+  if(destinations[requestedView]&&generation===accountGeneration)
+    requestAnimationFrame(()=>{if(generation===accountGeneration&&!$('dashboard').classList.contains('hidden'))
+      document.getElementById(destinations[requestedView])?.scrollIntoView({block:'start'});});
 }
 $('toggle-auth').addEventListener('click',()=>{registration=!registration;$('auth-title').textContent=registration?'Create your account':'Welcome back';$('auth-submit').textContent=registration?'Create account ↗':'Sign in ↗';$('register-consent').classList.toggle('hidden',!registration);$('auth-form').elements.password.autocomplete=registration?'new-password':'current-password';$('auth-submit').disabled=!backend || (registration&&!registrationEnabled);});
 $('auth-form').addEventListener('submit',safeAction(async e=>{
@@ -115,7 +120,7 @@ $('auth-form').addEventListener('submit',safeAction(async e=>{
   authPending=true;$('auth-submit').disabled=true;
   try{
     const d=formData(e.target);
-    if(registration){if(!d.consent)throw new Error('Please accept the pre-launch terms.');const r=await api('register',{...d,consent_version:consentVersion});notice(r.message);location.hash='#signin';}
+    if(registration){if(!d.consent)throw new Error('Please accept the account and order terms.');const r=await api('register',{...d,consent_version:consentVersion});notice(r.message);location.hash='#signin';}
     else{notice('Signing in. Please wait for your account to load.');await api('login',d);await refresh();notice('You’re signed in.');}
   }finally{authPending=false;$('auth-submit').disabled=!backend||(registration&&!registrationEnabled);}
 }));
@@ -184,7 +189,7 @@ async function init(){
     backend=true;$('auth-submit').disabled=registration&&!registrationEnabled;
     $('forgot').disabled=false;
     $('google-signin').parentElement.classList.remove('hidden');setupGoogleSignIn();
-    if($('notice').textContent===startupMessage)notice($('dashboard').classList.contains('hidden')?(registration&&!registrationEnabled?'Email registration is closed during pre-launch. Existing users can return to sign in.':'Ready to sign in.'): 'Your saved account is signed in.');
+    if($('notice').textContent===startupMessage)notice($('dashboard').classList.contains('hidden')?(registration&&!registrationEnabled?'Email registration is temporarily unavailable. Existing users can sign in.':'Ready to sign in.'): 'Your saved account is signed in.');
   }catch{ backend=false;$('retry-connection').classList.remove('hidden'); notice('KiwiKind could not establish a secure session. Retry after the server wakes up. If cookies are blocked, allow cross-site cookies for this site and try again. Some browsers cannot support this sign-in configuration.',true);$('connection-status').textContent='Customer backend temporarily unavailable';$('auth-submit').disabled=true;$('toggle-auth').disabled=true;$('forgot').disabled=true; }
   finally{initInFlight=false;restoringSession=false;$('retry-connection').disabled=false;if(backend&&!resetToken)routeAccount();}
 }
@@ -219,7 +224,7 @@ function selectAccountForm(signUp){
   if(registration!==signUp)$('toggle-auth').click();
   document.body.classList.toggle('signup-view',signUp);
   $('back-to-login').classList.toggle('hidden',!signUp);
-  if(backend&&signUp&&!registrationEnabled)notice('Email registration is closed during pre-launch. Existing users can return to sign in.');
+  if(backend&&signUp&&!registrationEnabled)notice('Email registration is temporarily unavailable. Existing users can sign in.');
   else if(backend&&$('notice').textContent.startsWith('Email registration is closed'))notice('Ready to sign in.');
 }
 function routeAccount(){

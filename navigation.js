@@ -4,9 +4,9 @@
   const path = location.pathname.split('/').pop() || 'index.html';
   const hrefs = [
     ['Browse plans', './broadband.html'],
-    ['My orders', './account.html#portal'],
-    ['Payment offers', './account.html#portal'],
-    ['Support', './account.html#portal'],
+    ['My orders', './account.html?view=orders#portal'],
+    ['Payment offers', './account.html?view=payments#portal'],
+    ['Support', './account.html?view=support#portal'],
   ];
   const bar = document.createElement('nav');
   bar.className = 'kk-shortcuts';

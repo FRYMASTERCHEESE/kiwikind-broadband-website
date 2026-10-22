@@ -83,3 +83,20 @@ test('owner request-review shortcut is MFA-gated and does not submit Vetta order
  assert.ok(page.includes('Confirm each address and connection'));
  assert.ok(!ops.includes('vetta/orders'));
 });
+
+test('customers see actual ordering not fake previews or QA payment links',()=>{
+ const homepage=read('index.html'),account=read('account.html'),owner=read('owner.html');
+ const navigation=read('navigation.js');
+ assert.ok(homepage.includes('My KiwiKind · Your real account'));
+ assert.ok(account.includes('My KiwiKind · Your real account'));
+ for(const label of ['Dashboard preview','This is a visual demonstration','Owner sandbox readiness','No domain purchased']){
+   assert.ok(!account.includes(label),label);assert.ok(!homepage.includes(label),label);
+ }
+ assert.ok(!account.includes('sandbox testing'));
+ assert.ok(owner.includes('<details id="owner-advanced-qa">'));
+ for(const view of ['orders','payments','support'])assert.ok(navigation.includes('?view='+view+'#portal'));
+ assert.ok(read('account.js').includes('const destinations={orders:'));
+ assert.ok(account.includes('id="customer-payments"'));
+ assert.ok(account.includes('id="customer-support"'));
+ assert.ok(read('privacy.html').includes('Broadband plan requests are open'));
+});
