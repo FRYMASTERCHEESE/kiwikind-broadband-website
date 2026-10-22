@@ -89,7 +89,7 @@ async function refresh(savedAccount) {
     }));
   }
   void refreshLivePayments(generation);
-  empty('invoices',invoices?'No invoices.':'Billing information temporarily unavailable.');
+  empty('invoices',invoices?'':'Other billing information temporarily unavailable.');
   if(invoices?.invoices?.length)$('invoices').replaceChildren();
   for(const i of invoices?.invoices || []) record($('invoices'),new Intl.NumberFormat('en-NZ',{style:'currency',currency:i.currency}).format(i.amount_cents/100),`${i.status} · Due ${i.due_date}`);
   $('order-submit').disabled=!intake;
