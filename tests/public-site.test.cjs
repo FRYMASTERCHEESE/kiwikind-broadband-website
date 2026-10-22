@@ -111,7 +111,7 @@ test('owner confirmation is easy but cannot silently create a paid subscription'
  assert.ok(ops.includes('Approve final customer offer'));
  assert.ok(ops.includes('Save draft for later'));
  assert.ok(ops.includes('vetta_owner_verified'));
- assert.ok(ops.includes("approvalButton.disabled=approving&&!verified.checked"));
+ assert.ok(ops.includes("form.dataset.serverPriceReady!=='yes'"));
  assert.ok(ops.includes("api('owner/operations/'+kind+'/'+id"));
  assert.ok(!ops.includes('vetta/orders'));
  assert.ok(!ops.includes('payments/checkout'));
