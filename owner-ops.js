@@ -58,16 +58,51 @@ window.KiwiKindOwnerOps={create({api,action,node,message}){
     }
     if(data.kind==='privacy'&&data.editable){const label=node('label','I confirm any requested manual fulfilment and lawful retention review are complete. This records review status; it does not delete customer data.');const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.name='confirm_completed';label.prepend(checkbox);form.append(label);}
     if(data.kind==='payment-agreements'&&data.editable){
-      const preview=node('p','');preview.setAttribute('role','status');form.append(preview);
-      const update=()=>{
-        const a=form.elements.source_monthly_cents.value,b=form.elements.source_setup_cents.value;
-        const valid=[a,b].every(v=>/^\d+$/.test(v)&&Number(v)<=1000000);
-        const approval=form.elements.confirm_live_offer;
-        if(approval){approval.checked=false;approval.disabled=!valid;}
-        if(!valid){preview.textContent='Enter both confirmed supplier amounts in cents to preview the final customer totals. Unknown setup cannot be approved.';return;}
-        preview.textContent='Supplier amounts recorded for owner review. The secure server calculates the complete GST-inclusive customer prices, including current pricing policy, when you save. Review the server-calculated monthly and once-only setup totals before approving. No payment is made here.';
+      // The secure server calculates the complete GST-inclusive customer
+      // prices. Never invent or approximate the current billing policy here.
+      const preview=node('p','Enter confirmed supplier costs in cents, then calculate the full customer prices. No payment is made here.');
+      preview.setAttribute('role','status');form.append(preview);
+      const confirm=form.elements.confirm_live_offer;
+      const valid=()=>['source_monthly_cents','source_setup_cents'].every(name=>{
+        const value=form.elements[name]?.value||'';
+        return /^\d+$/.test(value)&&Number(value)<=1000000;
+      });
+      const invalidate=()=>{
+        form.dataset.serverPriceReady='no';
+        if(confirm){confirm.checked=false;confirm.disabled=true;}
+        preview.textContent=valid()?'Calculate the final customer totals before approving this offer.':'Enter both supplier amounts in whole cents. Unknown setup cannot be approved.';
       };
-      form.addEventListener('input',event=>{if(event.target.name!=='confirm_live_offer')update();});update();
+      const calculate=button('Calculate exact customer totals',async()=>{
+        if(!valid())throw Error('Enter both supplier costs in whole cents.');
+        const a=form.elements.source_monthly_cents.value,b=form.elements.source_setup_cents.value;
+        calculate.disabled=true;
+        try{
+          const result=await api('owner/retail-price-preview',{
+            source_monthly_cents:Number(a),source_setup_cents:Number(b),agreement_id:data.id
+          });
+          if(!form.isConnected||a!==form.elements.source_monthly_cents.value||
+            b!==form.elements.source_setup_cents.value)return;
+          if(result.currency!=='NZD'||result.gst_included!==true||
+            result.saved!==false||result.approved!==false||
+            !Number.isSafeInteger(result.monthly_cents)||
+            !Number.isSafeInteger(result.setup_cents)||
+            !Number.isSafeInteger(result.first_invoice_cents)||
+            result.monthly_cents+result.setup_cents!==result.first_invoice_cents)
+            throw Error('Server price verification failed. Do not approve.');
+          const money=cents=>new Intl.NumberFormat('en-NZ',{style:'currency',currency:'NZD'}).format(cents/100);
+          preview.textContent='Exact server calculation: '+money(result.monthly_cents)+
+            ' each month, '+money(result.setup_cents)+' setup once, first payment '+
+            money(result.first_invoice_cents)+'. All prices include GST. No charge has been made.';
+          form.dataset.serverPriceReady='yes';
+          if(confirm)confirm.disabled=false;
+          form.dispatchEvent(new Event('change',{bubbles:true}));
+        }finally{calculate.disabled=false;}
+      });
+      form.append(calculate);
+      form.addEventListener('input',event=>{
+        if(event.target.name==='source_monthly_cents'||event.target.name==='source_setup_cents')invalidate();
+      });
+      invalidate();
     }
     if(data.kind==='payment-agreements'&&data.editable){
       const attestation=node('label','I personally verified this customer’s address, service availability and final supplier fees in Vetta. I understand this approves a customer offer, not an automatic supplier order.');
@@ -78,7 +113,7 @@ window.KiwiKindOwnerOps={create({api,action,node,message}){
         const approving=form.elements.reviewed?.checked===true;
         approvalButton.textContent=approving?'Approve final customer offer':'Save draft for later';
         verified.required=approving;
-        approvalButton.disabled=approving&&!verified.checked;
+        approvalButton.disabled=approving&&(!verified.checked||form.dataset.serverPriceReady!=='yes'||form.elements.confirm_live_offer?.checked!==true);
         approvalButton.setAttribute('aria-describedby','owner-approval-steps');
       };
       form.addEventListener('change',updateApproval);verified.addEventListener('change',updateApproval);updateApproval();
