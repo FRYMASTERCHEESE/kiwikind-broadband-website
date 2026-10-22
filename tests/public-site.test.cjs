@@ -100,3 +100,19 @@ test('customers see actual ordering not fake previews or QA payment links',()=>{
  assert.ok(account.includes('id="customer-support"'));
  assert.ok(read('privacy.html').includes('Broadband plan requests are open'));
 });
+
+test('owner confirmation is easy but cannot silently create a paid subscription',()=>{
+ const ops=read('owner-ops.js'),owner=read('owner.html');
+ assert.ok(owner.includes('Manage broadband requests and offers'));
+ assert.ok(ops.includes('Review next broadband request'));
+ assert.ok(ops.includes('Review request'));
+ assert.ok(ops.includes('Continue: prepare the customer offer'));
+ assert.ok(ops.includes('Continue: review and approve final offer'));
+ assert.ok(ops.includes('Approve final customer offer'));
+ assert.ok(ops.includes('Save draft for later'));
+ assert.ok(ops.includes('vetta_owner_verified'));
+ assert.ok(ops.includes("approvalButton.disabled=approving&&!verified.checked"));
+ assert.ok(ops.includes("api('owner/operations/'+kind+'/'+id"));
+ assert.ok(!ops.includes('vetta/orders'));
+ assert.ok(!ops.includes('payments/checkout'));
+});
