@@ -58,7 +58,7 @@
     return matched?chosen:null;
   }
   function openSuggestedPlan(productId,preferredSpeed){
-    const product=catalogue?.products?.find(p=>p.id===productId);
+    const product=catalogue?.products?.find(p=>p.id===productId||p.family===productId);
     if(!product){notice('This plan is not currently available to request. Please check again or contact KiwiKind.',true);return;}
     configure(product,preferredOptions(product,preferredSpeed));
   }
@@ -167,9 +167,11 @@
         const card=el('article','','card');card.append(el('h2',product.name),el('div','Starting from','from'),
           el('div',money(product.headline_monthly_cents),'price'),el('div','Monthly · incl. GST','period'),
           el('p',product.description,'desc'));
-        if(friendlyUse[product.id])card.insertBefore(el('p',friendlyUse[product.id],'best-for'),card.querySelector('.desc'));
+        if(friendlyUse[product.family||product.id])card.insertBefore(el('p',friendlyUse[product.family||product.id],'best-for'),card.querySelector('.desc'));
         card.append(el('p',!['verified_speed_address_review_required','screen_checked'].includes(product.price_status)?'Supplier rate to be confirmed before payment.':'Rate checked; address and setup fees still need confirmation.','plan-price-status'));
-        if(product.headline_note)card.append(el('small','Starting tier: '+product.headline_note+'; choose a practical home speed on the next screen.'));
+        if(product.allowance)card.append(el('p',product.allowance,'allowance'));
+        if(product.terms)card.append(el('p',product.terms,'fine'));
+        if(product.default_quote){const q=product.default_quote;card.append(el('p',`Setup once: ${q.setup_cents===null?'To confirm':money(q.setup_cents)} · First payment: ${q.first_invoice_cents===null?'To confirm':money(q.first_invoice_cents)} including GST`,'fine'));}
         const choose=el('button','Choose options','cta');choose.type='button';choose.onclick=()=>configure(product,product.id==='ufb'?preferredOptions(product,'500Mbps Down / 100Mbps Up'):null);
         card.append(choose);$('cards').append(card);
       }
