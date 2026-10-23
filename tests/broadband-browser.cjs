@@ -2,15 +2,16 @@
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict'), fs=require('node:fs'),http=require('node:http'),path=require('node:path');
 const fixture=require('./broadband-fixture.json'),root=path.resolve(__dirname,'..');
+for(const plan of fixture.catalogue.products){plan.family=plan.id;plan.allowance='123GB synthetic included data';plan.terms='Synthetic service terms for isolated layout checks.';plan.price_status='verified';}
 const out=process.env.PAGES_SCREENSHOTS||'test-results/broadband';fs.mkdirSync(out,{recursive:true});
 const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+req.url.split('?')[0]);if(!file.startsWith(root+path.sep)){res.writeHead(403).end();return;}try{res.setHeader('Content-Type',file.endsWith('.js')?'application/javascript':file.endsWith('.css')?'text/css':'text/html');res.end(fs.readFileSync(file));}catch{res.writeHead(404).end();}});
 (async()=>{await new Promise(r=>server.listen(0,'127.0.0.1',r));const browser=await chromium.launch({headless:true});try{
 for(const width of [320,390,1365]){
  const context=await browser.newContext({viewport:{width,height:900}}),page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
- let signedIn=false,submitted=[],reject=false,holdQuote;
+ let signedIn=false,submitted=[],reject=false,holdQuote,emptyCatalogue=false;
  await page.route('https://kiwikind-backend.onrender.com/api/**',async route=>{
   const req=route.request(),url=new URL(req.url());let data,status=200;
-  if(url.pathname==='/api/broadband/catalogue')data=fixture.catalogue;
+  if(url.pathname==='/api/broadband/catalogue')data=emptyCatalogue?{...fixture.catalogue,products:[],orders_enabled:false}:fixture.catalogue;
   else if(url.pathname==='/api/bootstrap')data={csrfToken:'synthetic',account:signedIn?{email:'synthetic@example.invalid'}:null};
   else if(url.pathname==='/api/broadband/quote'){
    if(url.searchParams.get('product')==='ufb'&&url.searchParams.get('options')==='1'){holdQuote=route;return;}
@@ -23,6 +24,10 @@ for(const width of [320,390,1365]){
  });
  const base=`http://127.0.0.1:${server.address().port}/broadband.html`;
  await page.goto(base);await page.locator('.card').last().waitFor();assert.equal(await page.locator('.card').count(),7);
+ assert.equal(await page.locator('.card .allowance').count(),7);
+ assert.match(await page.locator('.card').first().textContent(),/123GB synthetic included data/);
+ assert.match(await page.locator('.card').first().textContent(),/Setup once:.*First payment:/);
+ assert.match(await page.locator('.card').first().textContent(),/Rate checked/);
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
  await page.screenshot({path:path.join(out,`catalogue-${width}.png`),fullPage:true});
 
@@ -60,6 +65,8 @@ for(const width of [320,390,1365]){
  assert.equal(submitted.length,2);assert.equal(submitted[1].product_id,'ufb');assert.deepEqual(submitted[1].selections,['3']);assert.equal(submitted[1].accept_review,true);assert.equal(submitted[1].quote_version,fixture.quotes['ufb:3'].quote_version);assert.equal(submitted[0].idempotency_key,submitted[1].idempotency_key);
  assert.equal(await page.locator('#submit-order').isDisabled(),true);assert.deepEqual(errors,[]);
  await page.goto(base+'?plan=vector&options=1,1,0,0');await page.waitForFunction(()=>document.querySelector('#setup').textContent==='To confirm');assert.equal(await page.locator('#due').textContent(),'To confirm');
+ emptyCatalogue=true;await page.goto(base);await page.getByText('Broadband plans are temporarily unavailable. Please contact KiwiKind.',{exact:true}).waitFor();assert.equal(await page.locator('.card').count(),0);
+ await page.screenshot({path:path.join(out,`empty-${width}.png`),fullPage:true});
  await context.close();
 }console.log('Broadband desktop/phone catalogue, price race, sign-in selection and order submission checks passed.');
 }finally{await browser.close();server.close();}})().catch(e=>{console.error(e);server.close();process.exitCode=1;});
