@@ -11,6 +11,9 @@ window.KiwiKindOwnerOps={create({api,action,node,message}){
       quick.classList.add('priority-requests');
       $('ops-nav').append(quick);
     }
+    if(result.collections.some(item=>item.name==='providers')){
+      $('ops-nav').append(button('Review Vetta supplier framework',()=>collection('providers')));
+    }
     const advanced=node('details',''),summary=node('summary','Advanced test records (owner only)');
     advanced.append(summary);
     for(const item of result.collections){
