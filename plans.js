@@ -6,7 +6,7 @@
     if (!response.ok) throw new Error('Unavailable');
     const {products:plans} = await response.json();
     if (!Array.isArray(plans)) throw new Error('Invalid catalogue');
-    if (!plans.length) {target.replaceChildren();const empty=document.createElement('p');empty.textContent='We are updating our broadband plans. Please check back soon. Existing customers can still sign in to manage their account.';target.append(empty);return;}
+    if (!plans.length) {target.replaceChildren();const empty=document.createElement('p');empty.textContent='All previous plans have been cleared. KiwiKind is rebuilding the catalogue directly from verified Vetta records. No prices or speeds are currently on sale. Existing customers can still sign in.';target.append(empty);return;}
     target.replaceChildren();
     const money = value => new Intl.NumberFormat('en-NZ', {style:'currency',currency:'NZD'}).format(value/100);
     for (const plan of plans) {
