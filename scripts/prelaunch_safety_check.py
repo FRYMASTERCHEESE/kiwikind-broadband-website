@@ -87,16 +87,19 @@ def private_payments_require_signin():
 def validate_catalogue(raw):
     try:
         data=json.loads(raw)
-        assert data['orders_enabled'] is True
+        assert type(data['products']) is list
+        assert data['orders_enabled'] is bool(data['products'])
         assert data['supplier_orders_enabled'] is False
         assert data['payment_timing']=='after_connection_confirmation'
         assert data['gst_included'] is True and data['currency']=='NZD'
-        assert data['monthly_addition_cents']==300 and data['setup_addition_cents']==1000
-        assert {p['id'] for p in data['products']}=={'adsl','vdsl','ufb','vector','rbi','fixed-wireless','mobile-4g'}
+        assert 'monthly_addition_cents' not in data and 'setup_addition_cents' not in data
+        assert len({p['id'] for p in data['products']})==len(data['products'])
         for product in data['products']:
             q=product['default_quote']
-            assert type(q['monthly_cents']) is int and q['monthly_cents']>300
-            assert q['setup_cents'] is None or q['setup_cents']>=1000
+            assert product['price_status']=='verified'
+            assert type(q['monthly_cents']) is int and q['monthly_cents']>0
+            assert type(q['setup_cents']) is int and q['setup_cents']>=0
+            assert q['first_invoice_cents']==q['monthly_cents']+q['setup_cents']
     except (AssertionError,KeyError,TypeError,ValueError):
         raise PrelaunchCheckError('Broadband catalogue, GST additions or confirmation gates changed.') from None
     return True
