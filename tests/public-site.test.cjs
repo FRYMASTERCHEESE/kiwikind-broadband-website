@@ -54,7 +54,7 @@ test('never leak server credentials, private quotes or supplier contracts',()=>{
 test('the Pages deploy tests and exports only allowlisted public files',()=>{
  assert.ok(workflow.includes('node --test tests/*.test.cjs'));
  assert.ok(workflow.indexOf('node --test tests/*.test.cjs')<workflow.indexOf('Stage only approved public assets'));
- assert.ok(workflow.includes('account.html account.js account.css readiness.js owner.html owner.js owner.css owner-ops.js owner-scenarios.js broadband.html broadband.js broadband.css navigation.css navigation.js; do'));
+ assert.ok(workflow.includes('account.html account.js account.css readiness.js owner.html owner.js owner.css owner-ops.js owner-scenarios.js owner-catalogue-releases.js broadband.html broadband.js broadband.css navigation.css navigation.js; do'));
  assert.ok(!workflow.includes('cp -r'));
 });
 

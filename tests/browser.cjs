@@ -39,10 +39,21 @@ const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+deco
       if(req.method()==='POST')ownerSave=JSON.parse(req.postData());
       data={kind:'customers',id:'123',editable:true,version:'signed-synthetic-version',record:{email:'synthetic@example.invalid'},fields:[{name:'first_name',label:'First name',value:ownerSave?.values.first_name||'Synthetic',type:'text',required:false},{name:'is_active',label:'Active',value:true,type:'checkbox',required:false}]};
     }
+    else if(endpoint==='owner/dollar-verification')data={mode:'live',amount_cents:100,currency:'NZD',state:'not_started',enabled:false,can_start:false};
     else if(endpoint==='owner/sandbox-runs')data={runs:[]};
     else if(endpoint==='owner/mfa'){if(req.method()==='POST'){ownerVerified=true;data={mfa_verified:true};}else{if(delayMfa){pendingMfa=route;return;}data={enrolling:false,setup_key:''};}}
     else if(endpoint==='owner/readiness')data={checks:[{done:false,label:'Synthetic sandbox evidence',detail:'Provider lifecycle not verified by this test.'}]};
     else if(endpoint==='owner/catalogue')data={plans:[{name:'Synthetic private quote',network:'Test network',wholesale_ex_gst:'40.00',retail_ex_gst:null,review_status:'draft'}],csv_columns:['name','download_mbps']};
+    else if(endpoint==='owner/catalogue-releases'){
+      assert.ok(ownerVerified,'Catalogue release data must not load before owner MFA');
+      data={releases:[{id:7,products:1,active:false,approved:false,verified_on:null,valid_until:null}]};
+    }
+    else if(endpoint==='owner/catalogue-releases/7'){
+      assert.ok(ownerVerified,'Source components require owner MFA');
+      data={release:{id:7,products:1,active:false,checksum:'synthetic-fingerprint'},products:[{
+        source:{name:'Synthetic <source> plan',family:'ufb',description:'Synthetic private source',source_ref:'synthetic-source',base:'42.00',baseSetup:'0.00',setupUnknown:true,allowance:'Synthetic data',terms:'Synthetic terms',unverified:['Setup fee'],groups:[]},
+        default_selections:[],retail_preview:{monthly_cents:6000,setup_cents:null,first_invoice_cents:null}}]};
+    }
     await route.fulfill({status,contentType:'application/json',headers:{'Access-Control-Allow-Origin':base,'Access-Control-Allow-Credentials':'true'},body:JSON.stringify(data)});
    });
    await page.goto(base+'/account.html#signin');
@@ -111,6 +122,11 @@ const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+deco
    assert.equal(await page.locator('#private').isVisible(),false);
    await page.locator('input[name=code]').fill('123456');await page.locator('#mfa-form button').click();
    await page.locator('#private:not([hidden])').waitFor();
+   await page.getByText('Owner Google proof and MFA verified. Private evidence loaded.',{exact:true}).waitFor();
+   await page.locator('#release-list').getByRole('button',{name:'Review these prices',exact:true}).click();
+   await page.locator('#release-detail').getByText('Synthetic <source> plan',{exact:true}).waitFor();
+   assert.match(await page.locator('#release-detail').textContent(),/setup Not confirmed; first payment Not confirmed/);
+   assert.equal(await page.locator('#release-detail source').count(),0,'Private text must not be interpreted as HTML');
    await page.getByRole('button',{name:'Customers',exact:true}).click();
    await page.locator('#ops-content').getByRole('button',{name:'Open',exact:true}).click();
    await page.locator('#ops-edit-form input[name=first_name]').fill('Updated synthetic');
