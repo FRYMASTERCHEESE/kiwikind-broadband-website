@@ -121,6 +121,7 @@ const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+deco
    assert.equal(await page.locator('#private').isVisible(),false);
    await page.locator('input[name=code]').fill('123456');await page.locator('#mfa-form button').click();
    await page.locator('#private:not([hidden])').waitFor();
+   await page.getByText('Owner Google proof and MFA verified. Private evidence loaded.',{exact:true}).waitFor();
    await page.locator('#release-list').getByRole('button',{name:'Review these prices',exact:true}).click();
    await page.locator('#release-detail').getByText('Synthetic <source> plan',{exact:true}).waitFor();
    assert.match(await page.locator('#release-detail').textContent(),/setup Not confirmed; first payment Not confirmed/);
