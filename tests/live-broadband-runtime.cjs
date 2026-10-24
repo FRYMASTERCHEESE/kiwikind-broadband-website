@@ -12,7 +12,7 @@ const assert=require('node:assert/strict');
       page.on('pageerror',error=>errors.push(String(error.message).slice(0,300)));
       page.on('requestfailed',req=>errors.push('request failed '+new URL(req.url()).pathname+' '+(req.failure()?.errorText||'').slice(0,80)));
       page.on('console',msg=>{if(msg.type()==='error')errors.push(msg.text().slice(0,300));});
-      page.on('response',response=>{
+      page.on('response',async response=>{
         const url=new URL(response.url());
         if(url.hostname==='frymastercheese.github.io' && (/\.js$/.test(url.pathname)||/\.html$/.test(url.pathname))){
           assets.push({path:url.pathname,status:response.status(),mime:response.headers()['content-type']||''});
