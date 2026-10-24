@@ -12,7 +12,8 @@ STATUS = json.dumps({
     "billing_enabled": False, "live_services": False,
 })
 PLANS = json.dumps({"plans": [], "live_orders_enabled": False})
-CATALOGUE=json.loads((Path(__file__).parent/'broadband-fixture.json').read_text())['catalogue']
+CATALOGUE={'products': [], 'orders_enabled': False, 'supplier_orders_enabled': False,
+    'payment_timing': 'after_connection_confirmation', 'gst_included': True, 'currency': 'NZD'}
 PAGES = {path: (
     "<!doctype html><html><body>KiwiKind Broadband " +
     ("Confirmation before payment" if path == "terms.html" else "") +
@@ -89,6 +90,15 @@ class PrelaunchSafetyChecks(unittest.TestCase):
         for key,value in [('monthly_addition_cents',345),('setup_addition_cents',1150),('supplier_orders_enabled',True),('payment_timing','immediate')]:
             with self.subTest(key=key),self.assertRaises(PrelaunchCheckError):
                 validate_catalogue(json.dumps({**CATALOGUE,key:value}))
+
+    def test_synthetic_zero_setup_has_no_assumed_kiwikind_fee(self):
+        synthetic={**CATALOGUE,'orders_enabled':True,'products':[{
+            'id':'synthetic-only','price_status':'verified',
+            'default_quote':{'monthly_cents':115,'setup_cents':0,'first_invoice_cents':115}}]}
+        self.assertTrue(validate_catalogue(json.dumps(synthetic)))
+        synthetic['products'][0]['default_quote']['first_invoice_cents']=1
+        with self.assertRaises(PrelaunchCheckError):
+            validate_catalogue(json.dumps(synthetic))
 
 
 if __name__ == "__main__":
