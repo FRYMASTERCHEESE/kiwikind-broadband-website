@@ -168,7 +168,7 @@
         card.append(el('h2',names[family]||products[0].name),el('div','Starting from','from'),
           el('div',money(Math.min(...products.map(p=>p.headline_monthly_cents))),'price'),
           el('div','Monthly · incl. GST','period'),el('p',friendlyUse[family]||products[0].description,'desc'));
-        const label=el('label','Network, speed and data option');
+        const label=el('label','Network and download/upload speed');
         const variants=el('select','');variants.setAttribute('aria-label',(names[family]||family)+' option');
         for(const product of products){const option=el('option',product.name);option.value=product.id;variants.append(option);}
         label.append(variants);card.append(label);
@@ -185,7 +185,7 @@
         card.append(choose);$('cards').append(card);
       }
       try {const state=await api('bootstrap');account=state.account||null;}catch {account=null;}
-      notice('Start with the simple plan guide. Prices are estimates and installation charges depend on the property; no payment is taken when you request an address check.');
+      notice('Broadband Direct prices include GST. Choose a network and speed option.');
       const params=new URLSearchParams(location.search),product=catalogue.products.find(p=>p.id===params.get('plan'));
       if(product)configure(product,(params.get('options')||'').split(','));
     }catch(error){notice(error.message,true);}
