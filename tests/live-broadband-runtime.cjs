@@ -19,7 +19,8 @@ const assert=require('node:assert/strict');
         }
         if(url.hostname==='kiwikind-backend.onrender.com'&&
           ['/api/broadband/catalogue','/api/bootstrap'].includes(url.pathname)){
-          requests.push({path:url.pathname,status:response.status(),
+          const responseJson=await response.json().catch(()=>null);
+          requests.push({path:url.pathname,status:response.status(),products:responseJson?.products?.length,hasAccount:!!responseJson?.account,error:responseJson?.error||'',
             allowedOrigin:response.headers()['access-control-allow-origin']||'',
             credentials:response.headers()['access-control-allow-credentials']||''});
         }
