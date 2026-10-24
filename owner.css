@@ -22,3 +22,5 @@
 #ops-content form textarea{min-height:130px}
 #ops-nav .priority-requests{width:100%}
 @media(max-width:680px){#ops-content .owner-action-primary{width:100%}}
+
+#release-list,#release-detail{overflow-wrap:anywhere;min-width:0}#release-detail input{width:100%}#release-detail details{margin:12px 0}#release-detail li{margin:8px 0;line-height:1.55}

@@ -4,7 +4,7 @@
   const $=id=>document.getElementById(id);
   let csrf='',busy=false,epoch=0,dollarCanStart=false;
   const message=text=>{$('notice').textContent=text;};
-  const clear=()=>{epoch++;operations?.clear();sandbox?.clear();for(const id of ['signin','mfa','private'])$(id).hidden=true;for(const id of ['checks','catalogue','setup-key','columns','google','stripe-result'])$(id).replaceChildren();$('mfa-form').reset();$('import-form').reset();$('one-dollar-consent').checked=false;$('one-dollar-pay').disabled=true;dollarCanStart=false;};
+  const clear=()=>{epoch++;operations?.clear();sandbox?.clear();releases?.clear();for(const id of ['signin','mfa','private'])$(id).hidden=true;for(const id of ['checks','catalogue','setup-key','columns','google','stripe-result'])$(id).replaceChildren();$('mfa-form').reset();$('import-form').reset();$('one-dollar-consent').checked=false;$('one-dollar-pay').disabled=true;dollarCanStart=false;};
   async function api(path,data){
     const response=await fetch(origin+'/api/'+path,{method:data===undefined?'GET':'POST',credentials:'include',cache:'no-store',redirect:'error',headers:{'Content-Type':'application/json','X-CSRFToken':csrf},...(data===undefined?{}:{body:JSON.stringify(data)}),signal:AbortSignal.timeout(75000)});
     let result;try{result=await response.json();}catch{throw Error('The secure API is unavailable. Retry shortly.');}
@@ -16,7 +16,8 @@
   const node=(tag,text)=>{const el=document.createElement(tag);el.textContent=text;return el;};
   const operations=window.KiwiKindOwnerOps?.create({api,action,node,message});
   const sandbox=window.KiwiKindSandbox?.create({api,action,node,message});
-  document.addEventListener('visibilitychange',()=>{if(document.hidden){operations?.clear();sandbox?.clear();}});
+  const releases=window.KiwiKindCatalogueReview?.create({api,action,node});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){operations?.clear();sandbox?.clear();releases?.clear();}});
   function stripeLiveCheckout(value){
     try{const u=new URL(value);return u.protocol==='https:'&&u.hostname==='checkout.stripe.com'&&!u.username&&!u.password&&(!u.port||u.port==='443')&&u.pathname.startsWith('/c/pay/cs_live_')&&!/[\s\\]/.test(value);}catch{return false;}
   }
@@ -49,7 +50,7 @@
     for(const plan of catalogue.plans){const row=node('tr','');for(const value of [plan.name,`${plan.network||'Unknown'} · ${plan.download_mbps??'?'} / ${plan.upload_mbps??'?'} Mbps`,plan.wholesale_ex_gst??'Unknown',plan.retail_ex_gst??'Unapproved',plan.review_status])row.append(node('td',String(value)));$('catalogue').append(row);}
     if(!catalogue.plans.length){const row=node('tr','');const cell=node('td','No private quotes recorded.');cell.colSpan=5;row.append(cell);$('catalogue').append(row);}
     $('columns').textContent=catalogue.csv_columns.join(',');
-    $('private').hidden=false;await operations?.load();if(generation!==epoch||document.hidden)return;await sandbox?.load();if(generation!==epoch||document.hidden)return;await refreshOneDollar();if(generation!==epoch||document.hidden)return;message('Owner Google proof and MFA verified. Private evidence loaded.');
+    $('private').hidden=false;await releases?.load();if(generation!==epoch||document.hidden)return;await operations?.load();if(generation!==epoch||document.hidden)return;await sandbox?.load();if(generation!==epoch||document.hidden)return;await refreshOneDollar();if(generation!==epoch||document.hidden)return;message('Owner Google proof and MFA verified. Private evidence loaded.');
   }
   async function init(){
     clear();message('Checking secure session…');
