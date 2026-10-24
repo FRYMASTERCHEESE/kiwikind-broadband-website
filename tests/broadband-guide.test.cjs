@@ -22,11 +22,11 @@ test('plan finder covers fibre, rural, copper and unknown with native buttons',(
 
 test('rural advice checks address before wireless; home fibre uses server options',()=>{
   assert.ok(script.includes("Rural homes can have fibre too"));
-  assert.ok(script.includes("500Mbps Down / 100Mbps Up"));
+  assert.ok(!script.includes("500Mbps Down / 100Mbps Up"));
   assert.ok(script.includes("['See RBI Rural plans', 'rbi']"));
   assert.ok(script.includes("['See Fixed Wireless plans', 'fixed-wireless']"));
-  assert.ok(script.includes("product.groups.map(group=>group.options[0].id)"));
-  assert.ok(script.includes("group.options.find(o=>o.name===speedName)"));
+  assert.ok(script.includes("configure(product,null)"));
+  assert.ok(!script.includes("preferredOptions"));
   assert.ok(html.includes('https://broadbandmap.nz/'));
   assert.ok(html.includes('guidance, not an address availability check'));
 });
@@ -44,7 +44,7 @@ test('price display is an estimate until KiwiKind verifies supplier setup',()=>{
   assert.ok(html.includes('Estimated first month + setup'));
   assert.ok(html.includes('Installation, churn, equipment'));
   assert.ok(html.includes('No payment is taken when you send an address request'));
-  assert.ok(script.includes("configure(product,preferredOptions(product,preferredSpeed))"));
+  assert.ok(script.includes("configure(product,null)"));
   assert.ok(!script.includes('api/payments/checkout'));
   assert.ok(!script.includes('vetta/orders'));
   assert.ok(!script.includes('PLAN_PUBLICATION_ENABLED'));
