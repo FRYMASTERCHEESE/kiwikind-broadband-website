@@ -163,16 +163,31 @@
     try {
       catalogue=await api('broadband/catalogue');
       if(!catalogue.products?.length){notice('Broadband plans are temporarily unavailable. Please contact KiwiKind.');return;}
-      for(const product of catalogue.products){
-        const card=el('article','','card');card.append(el('h2',product.name),el('div','Starting from','from'),
-          el('div',money(product.headline_monthly_cents),'price'),el('div','Monthly · incl. GST','period'),
-          el('p',product.description,'desc'));
-        if(friendlyUse[product.family||product.id])card.insertBefore(el('p',friendlyUse[product.family||product.id],'best-for'),card.querySelector('.desc'));
-        card.append(el('p',!['verified','verified_speed_address_review_required','screen_checked'].includes(product.price_status)?'Supplier rate to be confirmed before payment.':'Rate checked; address and setup fees still need confirmation.','plan-price-status'));
-        if(product.allowance)card.append(el('p',product.allowance,'allowance'));
-        if(product.terms)card.append(el('p',product.terms,'fine'));
-        if(product.default_quote){const q=product.default_quote;card.append(el('p',`Setup once: ${q.setup_cents===null?'To confirm':money(q.setup_cents)} · First payment: ${q.first_invoice_cents===null?'To confirm':money(q.first_invoice_cents)} including GST`,'fine'));}
-        const choose=el('button','Choose options','cta');choose.type='button';choose.onclick=()=>configure(product,product.id==='ufb'?preferredOptions(product,'500Mbps Down / 100Mbps Up'):null);
+      const names={adsl:'Direct ADSL Copper Broadband',vdsl:'Direct VDSL Copper Broadband',
+        ufb:'Direct UFB Fibre Broadband',vector:'Direct Vector UFB Fibre Broadband',
+        rbi:'RBI Rural Broadband','fixed-wireless':'Fixed Wireless Broadband','mobile-4g':'4G Mobile Broadband'};
+      const families=new Map();
+      for(const product of catalogue.products){const family=product.family||product.id;
+        if(!families.has(family))families.set(family,[]);families.get(family).push(product);}
+      for(const [family,products] of families){
+        const card=el('article','','card');
+        card.append(el('h2',names[family]||products[0].name),el('div','Starting from','from'),
+          el('div',money(Math.min(...products.map(p=>p.headline_monthly_cents))),'price'),
+          el('div','Monthly · incl. GST','period'),el('p',friendlyUse[family]||products[0].description,'desc'));
+        const label=el('label','Network, speed and data option');
+        const variants=el('select','');variants.setAttribute('aria-label',(names[family]||family)+' option');
+        for(const product of products){const option=el('option',product.name);option.value=product.id;variants.append(option);}
+        label.append(variants);card.append(label);
+        const details=el('p','','fine');
+        const allowance=el('p','','allowance'),status=el('p','','plan-price-status');
+        card.append(allowance,status);
+        const update=()=>{const product=products.find(p=>p.id===variants.value),q=product.default_quote;
+          allowance.textContent=product.allowance||'';
+          status.textContent=!['verified','verified_speed_address_review_required','screen_checked'].includes(product.price_status)?'Supplier rate to be confirmed before payment.':'Rate checked; address and setup fees still need confirmation.';
+          details.textContent=product.description+(q?` Monthly ${money(q.monthly_cents)}; Setup once: ${q.setup_cents===null?'To confirm':money(q.setup_cents)}; First payment: ${q.first_invoice_cents===null?'To confirm':money(q.first_invoice_cents)} including GST.`:'');};
+        variants.addEventListener('change',update);update();card.append(details);
+        const choose=el('button','Choose options','cta');choose.type='button';
+        choose.onclick=()=>configure(products.find(p=>p.id===variants.value),null);
         card.append(choose);$('cards').append(card);
       }
       try {const state=await api('bootstrap');account=state.account||null;}catch {account=null;}
