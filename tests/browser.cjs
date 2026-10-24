@@ -39,6 +39,7 @@ const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+deco
       if(req.method()==='POST')ownerSave=JSON.parse(req.postData());
       data={kind:'customers',id:'123',editable:true,version:'signed-synthetic-version',record:{email:'synthetic@example.invalid'},fields:[{name:'first_name',label:'First name',value:ownerSave?.values.first_name||'Synthetic',type:'text',required:false},{name:'is_active',label:'Active',value:true,type:'checkbox',required:false}]};
     }
+    else if(endpoint==='owner/dollar-verification')data={mode:'live',amount_cents:100,currency:'NZD',state:'not_started',enabled:false,can_start:false};
     else if(endpoint==='owner/sandbox-runs')data={runs:[]};
     else if(endpoint==='owner/mfa'){if(req.method()==='POST'){ownerVerified=true;data={mfa_verified:true};}else{if(delayMfa){pendingMfa=route;return;}data={enrolling:false,setup_key:''};}}
     else if(endpoint==='owner/readiness')data={checks:[{done:false,label:'Synthetic sandbox evidence',detail:'Provider lifecycle not verified by this test.'}]};
