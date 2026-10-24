@@ -8,11 +8,15 @@ const assert=require('node:assert/strict');
   try{
     for(const width of [390,1365]){
       const context=await browser.newContext({viewport:{width,height:860},serviceWorkers:'block'});
-      const page=await context.newPage(),errors=[],requests=[];
+      const page=await context.newPage(),errors=[],requests=[],assets=[];
       page.on('pageerror',error=>errors.push(String(error.message).slice(0,300)));
+      page.on('requestfailed',req=>errors.push('request failed '+new URL(req.url()).pathname+' '+(req.failure()?.errorText||'').slice(0,80)));
       page.on('console',msg=>{if(msg.type()==='error')errors.push(msg.text().slice(0,300));});
       page.on('response',response=>{
         const url=new URL(response.url());
+        if(url.hostname==='frymastercheese.github.io' && (/\.js$/.test(url.pathname)||/\.html$/.test(url.pathname))){
+          assets.push({path:url.pathname,status:response.status(),mime:response.headers()['content-type']||''});
+        }
         if(url.hostname==='kiwikind-backend.onrender.com'&&
           ['/api/broadband/catalogue','/api/bootstrap'].includes(url.pathname)){
           requests.push({path:url.pathname,status:response.status(),
@@ -32,9 +36,12 @@ const assert=require('node:assert/strict');
         visibleCards:[...document.querySelectorAll('#cards article.card')].filter(e=>e.getClientRects().length>0).length,
         notice:document.querySelector('#notice')?.textContent?.slice(0,200)||'',
         title:document.title,
+        readyState:document.readyState,
+        webScripts:[...document.scripts].map(e=>e.src),
+        secureRandomId:typeof crypto.randomUUID,
         cardsContainerPresent:!!document.getElementById('cards')
       }));
-      console.log('PUBLIC BROADBAND MOBILE/DESKTOP CHECK',JSON.stringify({width,...state,requests,errors}));
+      console.log('PUBLIC BROADBAND MOBILE/DESKTOP CHECK',JSON.stringify({width,...state,assets,requests,errors}));
       assert.ok(state.cards>0,`Zero public broadband plans rendered at width ${width}`);
       assert.equal(state.visibleCards,state.cards,'Plans exist but are hidden in the customer page');
       await context.close();
